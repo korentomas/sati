@@ -1,0 +1,58 @@
+# Branch Protection Rules for main branch
+# This file documents the required branch protection settings
+# Configure these in GitHub: Settings > Branches > Add rule
+
+branch_name: main
+
+# Require a pull request before merging
+require_pull_request_reviews: true
+required_approving_review_count: 1
+dismiss_stale_reviews: true
+require_code_owner_reviews: false
+
+# Require status checks to pass before merging
+require_status_checks: true
+required_status_checks:
+  - "code-quality"
+  - "security"
+  - "test"
+
+# Require branches to be up to date before merging
+require_branches_up_to_date: true
+
+# Restrict pushes that create files that match the specified glob patterns
+restrict_pushes: true
+push_restrictions: []
+
+# Require linear history
+require_linear_history: true
+
+# Allow force pushes (should be false for main)
+allow_force_pushes: false
+
+# Allow deletions (should be false for main)
+allow_deletions: false
+
+# Block creation of branches that match the specified glob patterns
+block_creation: false
+
+# Required status checks that are not automatically marked as "passing"
+# when a pull request is merged
+required_status_checks_strict: true
+
+# Require conversation resolution before merging
+require_conversation_resolution: true
+
+# Require signed commits
+require_signed_commits: false
+
+# Require deployments to succeed before merging
+require_deployment_status: false
+
+# Lock branch (prevents all changes)
+lock_branch: false
+
+# Allow users and teams to bypass required pull requests
+bypass_pull_request_allowances:
+  users: []
+  teams: []

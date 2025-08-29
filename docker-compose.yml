@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://satellite_user:satellite_pass@db:5432/satellite_imagery
+      - REDIS_URL=redis://redis:6379
+      - SECRET_KEY=your-secret-key-here-change-in-production
+    depends_on:
+      - db
+      - redis
+    volumes:
+      - ./app:/app/app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: satellite_imagery
+      POSTGRES_USER: satellite_user
+      POSTGRES_PASSWORD: satellite_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+volumes:
+  postgres_data:
+  redis_data:
