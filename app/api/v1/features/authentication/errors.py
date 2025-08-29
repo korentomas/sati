@@ -12,17 +12,13 @@ def invalid_credentials_error():
 
 def user_not_found_error():
     """Return HTTP 404 for user not found."""
-    return HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND,
-        detail="User not found"
-    )
+    return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
 
 def api_key_not_found_error():
     """Return HTTP 404 for API key not found."""
     return HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND,
-        detail="API key not found"
+        status_code=status.HTTP_404_NOT_FOUND, detail="API key not found"
     )
 
 
@@ -30,5 +26,5 @@ def api_key_creation_error():
     """Return HTTP 500 for API key creation failure."""
     return HTTPException(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        detail="Failed to create API key"
+        detail="Failed to create API key",
     )

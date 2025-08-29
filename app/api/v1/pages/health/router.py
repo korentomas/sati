@@ -1,5 +1,6 @@
-from fastapi import APIRouter
 from datetime import datetime
+
+from fastapi import APIRouter
 
 router = APIRouter()
 
@@ -17,8 +18,5 @@ async def readiness_check():
     return {
         "status": "ready",
         "timestamp": datetime.utcnow(),
-        "services": {
-            "database": "healthy",
-            "redis": "healthy"
-        }
+        "services": {"database": "healthy", "redis": "healthy"},
     }

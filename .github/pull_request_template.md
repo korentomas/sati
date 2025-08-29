@@ -6,16 +6,16 @@
 
 <!-- Mark relevant options with 'x' -->
 
-- [ ] 🚀 **feat**: A new feature
-- [ ] 🐛 **fix**: A bug fix
-- [ ] 📚 **docs**: Documentation only changes
-- [ ] 💅 **style**: Changes that do not affect the meaning of the code
-- [ ] ♻️ **refactor**: A code change that neither fixes a bug nor adds a feature
-- [ ] ⚡ **perf**: A code change that improves performance
-- [ ] 🧪 **test**: Adding missing tests or correcting existing tests
-- [ ] 🔧 **chore**: Changes to the build process or auxiliary tools
-- [ ] 🏗️ **build**: Changes that affect the build system or external dependencies
-- [ ] 🔄 **ci**: Changes to CI configuration files and scripts
+- [ ] **feat**: A new feature
+- [ ] **fix**: A bug fix
+- [ ] **docs**: Documentation only changes
+- [ ] **style**: Changes that do not affect the meaning of the code
+- [ ] **refactor**: A code change that neither fixes a bug nor adds a feature
+- [ ] **perf**: A code change that improves performance
+- [ ] **test**: Adding missing tests or correcting existing tests
+- [ ] **chore**: Changes to the build process or auxiliary tools
+- [ ] **build**: Changes that affect the build system or external dependencies
+- [ ] **ci**: Changes to CI configuration files and scripts
 
 ## Scope
 
@@ -68,9 +68,3 @@
 
 Closes #(issue_number)
 Relates to #(issue_number)
-
-## Reviewers
-
-<!-- Tag relevant team members for review -->
-
-@username1 @username2

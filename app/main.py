@@ -1,10 +1,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.v1.features.authentication.router import router as auth_router
+from app.api.v1.pages.health.router import router as health_router
 from app.core.config import settings
 from app.core.logging import setup_logging
-from app.api.v1.pages.health.router import router as health_router
-from app.api.v1.features.authentication.router import router as auth_router
 
 # Setup logging
 logger = setup_logging()
@@ -28,8 +28,12 @@ app.add_middleware(
 )
 
 # Include routers
-app.include_router(health_router, prefix=f"{settings.api_v1_prefix}/health", tags=["health"])
-app.include_router(auth_router, prefix=f"{settings.api_v1_prefix}/auth", tags=["authentication"])
+app.include_router(
+    health_router, prefix=f"{settings.api_v1_prefix}/health", tags=["health"]
+)
+app.include_router(
+    auth_router, prefix=f"{settings.api_v1_prefix}/auth", tags=["authentication"]
+)
 
 
 @app.get("/")
@@ -37,10 +41,11 @@ async def root():
     return {
         "message": f"Welcome to {settings.app_name}",
         "version": settings.version,
-        "docs": f"{settings.api_v1_prefix}/docs"
+        "docs": f"{settings.api_v1_prefix}/docs",
     }
 
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=8000)

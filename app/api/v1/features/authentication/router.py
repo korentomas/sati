@@ -1,10 +1,12 @@
-from fastapi import APIRouter, Depends
-from typing import Dict, Any
+from typing import Any, Dict
 
+from fastapi import APIRouter, Depends
+
+from app.api.v1.features.authentication.dto import (ApiKeyRequest,
+                                                    ApiKeyResponse,
+                                                    LoginRequest,
+                                                    TokenResponse, UserProfile)
 from app.api.v1.features.authentication.handler import AuthHandler
-from app.api.v1.features.authentication.dto import (
-    LoginRequest, TokenResponse, ApiKeyRequest, ApiKeyResponse, UserProfile
-)
 from app.api.v1.shared.auth.deps import get_current_user
 
 router = APIRouter()
@@ -14,7 +16,7 @@ auth_handler = AuthHandler()
 @router.post("/login", response_model=TokenResponse)
 async def login(login_request: LoginRequest):
     """Authenticate user and return access token.
-    
+
     Use email@example.com with password 'secret' for testing.
     """
     return await auth_handler.login(login_request)
@@ -28,8 +30,7 @@ async def get_profile(current_user: Dict[str, Any] = Depends(get_current_user)):
 
 @router.post("/api-keys", response_model=ApiKeyResponse)
 async def create_api_key(
-    request: ApiKeyRequest,
-    current_user: Dict[str, Any] = Depends(get_current_user)
+    request: ApiKeyRequest, current_user: Dict[str, Any] = Depends(get_current_user)
 ):
     """Generate a new API key for the authenticated user."""
     return await auth_handler.create_api_key(current_user, request)
