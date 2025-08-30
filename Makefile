@@ -57,19 +57,19 @@ test-fast:
 lint:
 	@echo "Running linting checks..."
 	@echo "  Black formatting check..."
-	black --check app/
+	black --check .
 	@echo "  Import sorting check..."
-	isort --check-only app/
+	isort --check-only .
 	@echo "  Flake8 style check..."
-	flake8 app/ --max-line-length=88 --extend-ignore=E203,W503
+	flake8 . --max-line-length=88 --extend-ignore=E203,W503 --exclude=venv/
 	@echo "  Type checking with mypy..."
 	mypy app/ --ignore-missing-imports --no-strict-optional
 	@echo "All linting checks passed!"
 
 format:
 	@echo "Auto-formatting code..."
-	black app/
-	isort app/
+	black .
+	isort .
 	@echo "Code formatted!"
 
 check-all: lint format test
