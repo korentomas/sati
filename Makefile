@@ -30,7 +30,7 @@ help:
 # Development
 dev:
 	@echo "Starting development server..."
-	uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+	uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir app/
 
 # Docker operations
 up:
@@ -57,9 +57,9 @@ test-fast:
 lint:
 	@echo "Running linting checks..."
 	@echo "  Black formatting check..."
-	black --check --diff app/
+	black --check app/
 	@echo "  Import sorting check..."
-	isort --check-only --diff app/
+	isort --check-only app/
 	@echo "  Flake8 style check..."
 	flake8 app/ --max-line-length=88 --extend-ignore=E203,W503
 	@echo "  Type checking with mypy..."
