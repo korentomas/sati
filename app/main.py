@@ -1,3 +1,5 @@
+from typing import Any, Dict
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -37,7 +39,7 @@ app.include_router(
 
 
 @app.get("/")
-async def root():
+async def root() -> Dict[str, Any]:
     return {
         "message": f"Welcome to {settings.app_name}",
         "version": settings.version,
