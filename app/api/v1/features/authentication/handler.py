@@ -1,18 +1,24 @@
-from typing import Any, Dict
+from typing import Any, Dict, List
 
-from app.api.v1.features.authentication.dto import (ApiKeyRequest,
-                                                    ApiKeyResponse,
-                                                    LoginRequest,
-                                                    TokenResponse, UserProfile)
+from app.api.v1.features.authentication.dto import (
+    ApiKeyRequest,
+    ApiKeyResponse,
+    LoginRequest,
+    TokenResponse,
+    UserProfile,
+)
 from app.api.v1.features.authentication.errors import (
-    api_key_creation_error, invalid_credentials_error, user_not_found_error)
+    api_key_creation_error,
+    invalid_credentials_error,
+    user_not_found_error,
+)
 from app.api.v1.features.authentication.service import AuthService
 
 
 class AuthHandler:
     """Authentication handler for orchestrating service calls."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.auth_service = AuthService()
 
     async def login(self, login_request: LoginRequest) -> TokenResponse:
@@ -41,7 +47,7 @@ class AuthHandler:
             raise user_not_found_error()
         return profile
 
-    async def list_api_keys(self, current_user: Dict[str, Any]) -> list[dict]:
+    async def list_api_keys(self, current_user: Dict[str, Any]) -> List[dict]:
         """Handle listing user's API keys."""
         user_id = current_user["sub"]
         return await self.auth_service.list_api_keys(user_id)

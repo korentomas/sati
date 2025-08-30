@@ -1,12 +1,15 @@
 import secrets
 import uuid
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import List, Optional
 
-from app.api.v1.features.authentication.dto import (ApiKeyRequest,
-                                                    ApiKeyResponse,
-                                                    LoginRequest,
-                                                    TokenResponse, UserProfile)
+from app.api.v1.features.authentication.dto import (
+    ApiKeyRequest,
+    ApiKeyResponse,
+    LoginRequest,
+    TokenResponse,
+    UserProfile,
+)
 from app.api.v1.shared.auth.jwt import create_access_token, verify_password
 from app.core.config import settings
 
@@ -19,13 +22,15 @@ class AuthService:
         "email@example.com": {
             "user_id": "user-123",
             "email": "email@example.com",
-            "password_hash": "$2b$12$LmZpXjXDovKvDXXYrRhyB./IO0d31HxjdXm8thlVVsbEvE2AbF01C",  # "secret"
+            "password_hash": (
+                "$2b$12$LmZpXjXDovKvDXXYrRhyB./IO0d31HxjdXm8thlVVsbEvE2AbF01C"
+            ),  # "secret"
             "created_at": "2024-01-01T00:00:00Z",
         }
     }
 
     # Mock API keys storage
-    _api_keys = {}
+    _api_keys: dict = {}
 
     async def authenticate_user(
         self, login_request: LoginRequest
@@ -82,7 +87,7 @@ class AuthService:
                 )
         return None
 
-    async def list_api_keys(self, user_id: str) -> list[dict]:
+    async def list_api_keys(self, user_id: str) -> List[dict]:
         """List all API keys for a user."""
         user_keys = []
         for key_data in self._api_keys.values():
