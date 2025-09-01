@@ -1,55 +1,70 @@
-# GitHub Ruleset Configuration for main branch
-# Configure these in GitHub: Settings > Rules > Rulesets > New branch ruleset
-# This file documents the required ruleset settings (GitHub Rulesets replace classic branch protection)
+# GitHub Ruleset Configuration for Main Branch Protection
+# 🚀 Configure in GitHub: Settings > Rules > Rulesets > New branch ruleset
 
-ruleset_name: "Main Branch Protection"
-target_branches:
-  - "main"
-enforcement: active  # Options: active, evaluate, disabled
+# === BASIC CONFIGURATION ===
+ruleset_name: "Main Branch Protection - Satellite Image API"
+enforcement_status: "Active"  # Active | Evaluate | Disabled
+target_branches: "~DEFAULT_BRANCH"  # Targets main/master branch automatically
 
-# === PULL REQUEST REQUIREMENTS ===
-pull_request_rules:
-  required: true
+# === BRANCH RULES TO ENABLE ===
+
+# ✅ CRITICAL PROTECTIONS
+restrict_deletions: true           # ✅ Only allow users with bypass permission to delete
+block_force_pushes: true          # ✅ Prevent force pushes  
+require_pull_request: true        # ✅ Require PRs before merging
+
+# ✅ PULL REQUEST REQUIREMENTS  
+pr_settings:
   required_approving_review_count: 1
-  dismiss_stale_reviews: true
-  require_code_owner_reviews: false
-  require_last_push_approval: false
+  dismiss_stale_reviews_on_push: true
+  require_code_owner_review: false
+  require_last_push_approval: false        # Set to true for extra security
   required_review_thread_resolution: true
 
-# === STATUS CHECK REQUIREMENTS ===
-status_check_rules:
-  required: true
-  strict_required_status_checks_policy: true  # Require branches to be up to date
-  required_status_checks:
-    - context: "code-quality"
-      integration_id: null  # GitHub Actions
-    - context: "security" 
-      integration_id: null  # GitHub Actions
-    - context: "test"
-      integration_id: null  # GitHub Actions
+# ✅ STATUS CHECKS (CRITICAL FOR CI)
+require_status_checks: true
+status_checks_must_be_up_to_date: true    # Require branches to be current
+required_status_checks:
+  - "code-quality"    # Matches workflow job name
+  - "security"        # Matches workflow job name  
+  - "test"           # Matches workflow job name
 
-# === BRANCH RESTRICTIONS ===
-branch_restrictions:
-  restrict_deletions: true
-  restrict_force_pushes: true
-  restrict_pushes: true  # Require pull requests
-  required_linear_history: true
+# ✅ COMMIT QUALITY
+require_linear_history: true              # Prevent messy merge commits
+commit_message_pattern: |
+  ^(build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test)(\\([a-z0-9-]+\\))?(!)?: .{1,100}
+  # Enforces conventional commits: feat: add new feature
 
-# === ADDITIONAL RULES ===
-additional_rules:
-  require_signed_commits: false
-  require_deployments_to_succeed: false
-  
-# === BYPASS PERMISSIONS ===
-# Only repository admins can bypass these rules by default
-# Configure specific users/teams in the GitHub UI if needed
-bypass_actors: []  # Configure in UI: Settings > Rules > Rulesets > [Ruleset] > Bypass list
+# ⚠️  OPTIONAL RULES (Enable as needed)
+require_signed_commits: false             # Enable for high-security projects
+require_deployments_to_succeed: false     # Enable if using GitHub deployments
+require_code_scanning: false              # Enable for advanced security scanning
 
-# === SETUP INSTRUCTIONS ===
-# 1. Go to GitHub repository Settings
-# 2. Navigate to Rules > Rulesets  
-# 3. Click "New branch ruleset"
-# 4. Configure settings above
-# 5. Set target to "main" branch
-# 6. Set enforcement to "Active"
-# 7. Enable required status checks: code-quality, security, test
+# === BYPASS LIST ===
+# Organization/Repository admins can bypass by default
+# Add specific users/teams/apps if needed in the GitHub UI
+
+# === 🔧 SETUP INSTRUCTIONS ===
+# 1. Go to: Repository Settings → Rules → Rulesets
+# 2. Click: "New branch ruleset"
+# 3. Copy settings from this file:
+#    - Name: "Main Branch Protection - Satellite Image API"  
+#    - Target: "Default branch"
+#    - Enforcement: "Active"
+# 4. Enable Branch Rules:
+#    ☑️ Restrict deletions
+#    ☑️ Block force pushes  
+#    ☑️ Require linear history
+#    ☑️ Require a pull request before merging (1 approval, dismiss stale reviews)
+#    ☑️ Require status checks to pass (code-quality, security, test)
+# 5. Optional: Add conventional commit pattern
+# 6. Save ruleset
+
+# === 📋 VERIFICATION CHECKLIST ===
+# After setup, verify:
+# ☑️ Direct pushes to main are blocked
+# ☑️ PRs require 1 approval  
+# ☑️ All 3 status checks must pass
+# ☑️ Branches must be up-to-date before merge
+# ☑️ Force pushes are blocked
+# ☑️ Branch deletions are blocked
