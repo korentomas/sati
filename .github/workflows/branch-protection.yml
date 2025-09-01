@@ -1,4 +1,6 @@
 name: Branch Protection and PR Checks
+# This workflow provides status checks for GitHub Rulesets
+# Job names (code-quality, security, test) must match ruleset configuration
 
 on:
   pull_request:
