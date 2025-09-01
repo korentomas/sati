@@ -27,7 +27,7 @@ async def login(login_request: LoginRequest) -> TokenResponse:
 
 @router.get("/profile", response_model=UserProfile)
 async def get_profile(
-    current_user: Dict[str, Any] = Depends(get_current_user)
+    current_user: Dict[str, Any] = Depends(get_current_user),
 ) -> UserProfile:
     """Get current user profile."""
     return await auth_handler.get_profile(current_user)
@@ -43,7 +43,7 @@ async def create_api_key(
 
 @router.get("/api-keys")
 async def list_api_keys(
-    current_user: Dict[str, Any] = Depends(get_current_user)
+    current_user: Dict[str, Any] = Depends(get_current_user),
 ) -> List[dict]:
     """List all API keys for the authenticated user."""
     return await auth_handler.list_api_keys(current_user)
