@@ -3,7 +3,6 @@
 from typing import Optional
 from fastapi import APIRouter, HTTPException, Query, Response
 from rio_tiler.io import Reader
-from rio_tiler.profiles import img_profiles
 import numpy as np
 from io import BytesIO
 from PIL import Image
@@ -26,6 +25,7 @@ async def get_tile(
     bands: Optional[str] = Query("1,2,3", description="Comma-separated band indices"),
     rescale: Optional[str] = Query(None, description="Min,max values for rescaling"),
     color_formula: Optional[str] = Query(None, description="Color formula (e.g., NDVI)"),
+    token: Optional[str] = Query(None, description="Optional auth token"),
 ) -> Response:
     """
     Get a map tile from a Cloud Optimized GeoTIFF.
@@ -51,36 +51,45 @@ async def get_tile(
             # Read the tile
             img = cog.tile(x, y, z, indexes=band_indices)
 
+            # Get the image data array
+            data = img.data
+
             # Apply rescaling if provided
             if rescale:
                 min_val, max_val = map(float, rescale.split(","))
-                img.data = np.clip(
-                    (img.data - min_val) / (max_val - min_val) * 255, 0, 255
+                data = np.clip(
+                    (data - min_val) / (max_val - min_val) * 255, 0, 255
                 ).astype(np.uint8)
             else:
                 # Auto-scale to 0-255 if not already
-                for i in range(img.data.shape[0]):
-                    band = img.data[i]
+                scaled_data = np.zeros_like(data, dtype=np.uint8)
+                for i in range(data.shape[0]):
+                    band = data[i]
                     if band.max() > 255:
                         # Scale from data range to 0-255
                         band_min = band.min()
                         band_max = band.max()
                         if band_max > band_min:
-                            img.data[i] = (
+                            scaled_data[i] = (
                                 (band - band_min) / (band_max - band_min) * 255
                             ).astype(np.uint8)
+                        else:
+                            scaled_data[i] = band.astype(np.uint8)
+                    else:
+                        scaled_data[i] = band.astype(np.uint8)
+                data = scaled_data
 
             # Convert to PIL Image
-            if img.data.shape[0] == 1:
+            if data.shape[0] == 1:
                 # Single band - grayscale
-                pil_img = Image.fromarray(img.data[0], mode="L")
-            elif img.data.shape[0] == 3:
+                pil_img = Image.fromarray(data[0], mode="L")
+            elif data.shape[0] == 3:
                 # RGB
                 pil_img = Image.fromarray(
-                    np.transpose(img.data, (1, 2, 0)), mode="RGB"
+                    np.transpose(data, (1, 2, 0)), mode="RGB"
                 )
             else:
-                raise ValueError(f"Unsupported number of bands: {img.data.shape[0]}")
+                raise ValueError(f"Unsupported number of bands: {data.shape[0]}")
 
             # Save to bytes
             buf = BytesIO()
