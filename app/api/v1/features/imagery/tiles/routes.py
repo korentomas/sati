@@ -272,7 +272,7 @@ async def get_sentinel2_tile(
             # Handle non-RGB band combinations
             raise HTTPException(
                 status_code=400,
-                detail="Only 3-band RGB composites are currently supported"
+                detail="Only 3-band RGB composites are currently supported",
             )
 
     except Exception as e:

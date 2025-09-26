@@ -16,7 +16,9 @@ from app.core.logging import logger
 class STACClient:
     """Client for interacting with STAC APIs."""
 
-    def __init__(self, api_url: str = "https://earth-search.aws.element84.com/v1") -> None:
+    def __init__(
+        self, api_url: str = "https://earth-search.aws.element84.com/v1"
+    ) -> None:
         """Initialize STAC client.
 
         Args:
