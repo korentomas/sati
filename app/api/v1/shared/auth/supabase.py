@@ -16,16 +16,24 @@ class SupabaseAuth:
         """Initialize Supabase client."""
         # For testing, allow dummy values
         import os
-        if os.getenv("TESTING") == "true" or not (settings.supabase_url and settings.supabase_anon_key):
+
+        if os.getenv("TESTING") == "true" or not (
+            settings.supabase_url and settings.supabase_anon_key
+        ):
             # Set dummy values for testing
             if not settings.supabase_url:
-                settings.supabase_url = os.getenv("SUPABASE_URL", "https://test.supabase.co")
+                settings.supabase_url = os.getenv(
+                    "SUPABASE_URL", "https://test.supabase.co"
+                )
             if not settings.supabase_anon_key:
-                settings.supabase_anon_key = os.getenv("SUPABASE_ANON_KEY", "test-anon-key")
+                settings.supabase_anon_key = os.getenv(
+                    "SUPABASE_ANON_KEY", "test-anon-key"
+                )
 
         # For testing, skip client creation if using test values
         if os.getenv("TESTING") == "true":
             from unittest.mock import MagicMock
+
             self.client = MagicMock()
             self.admin_client = MagicMock()
         else:
