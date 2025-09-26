@@ -65,7 +65,7 @@ async def get_api_key_user(
     token = credentials.credentials
 
     # Check if it's an API key (starts with 'sat_')
-    if token.startswith('sat_'):
+    if token.startswith("sat_"):
         # TODO: Implement API key validation from database
         # For now, return a mock user
         logger.info(f"API key authentication attempted: {token[:10]}...")

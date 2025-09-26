@@ -30,10 +30,12 @@ class AuthHandler:
         """Handle user login using Supabase."""
         try:
             # Authenticate with Supabase
-            response = supabase_auth.client.auth.sign_in_with_password({
-                "email": login_request.email,
-                "password": login_request.password,
-            })
+            response = supabase_auth.client.auth.sign_in_with_password(
+                {
+                    "email": login_request.email,
+                    "password": login_request.password,
+                }
+            )
 
             if response.user:
                 # Create backend JWT token
@@ -56,17 +58,21 @@ class AuthHandler:
             logger.error(f"Login failed: {e}")
             return None
 
-    async def register(self, register_request: RegisterRequest) -> Optional[TokenResponse]:
+    async def register(
+        self, register_request: RegisterRequest
+    ) -> Optional[TokenResponse]:
         """Handle user registration using Supabase."""
         try:
             # Register with Supabase
-            response = supabase_auth.client.auth.sign_up({
-                "email": register_request.email,
-                "password": register_request.password,
-                "options": {
-                    "email_redirect_to": None,  # No email confirmation for now
+            response = supabase_auth.client.auth.sign_up(
+                {
+                    "email": register_request.email,
+                    "password": register_request.password,
+                    "options": {
+                        "email_redirect_to": None,  # No email confirmation for now
+                    },
                 }
-            })
+            )
 
             if response.user:
                 # Create backend JWT token

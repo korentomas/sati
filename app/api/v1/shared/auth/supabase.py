@@ -16,16 +16,17 @@ class SupabaseAuth:
             raise ValueError("Supabase configuration is missing")
 
         self.client: Client = create_client(
-            settings.supabase_url,
-            settings.supabase_anon_key
+            settings.supabase_url, settings.supabase_anon_key
         )
 
         # Use service role key if available for admin operations
-        if settings.supabase_service_role_key and settings.supabase_service_role_key != "your-service-role-key-here":
+        if (
+            settings.supabase_service_role_key
+            and settings.supabase_service_role_key != "your-service-role-key-here"
+        ):
             try:
                 self.admin_client: Client = create_client(
-                    settings.supabase_url,
-                    settings.supabase_service_role_key
+                    settings.supabase_url, settings.supabase_service_role_key
                 )
             except Exception as e:
                 logger.warning(f"Could not create admin client: {e}")
@@ -110,11 +111,13 @@ class SupabaseAuth:
             User object if created successfully
         """
         try:
-            response = self.admin_client.auth.admin.create_user({
-                "email": email,
-                "password": password,
-                "email_confirm": True  # Auto-confirm for backend creation
-            })
+            response = self.admin_client.auth.admin.create_user(
+                {
+                    "email": email,
+                    "password": password,
+                    "email_confirm": True,  # Auto-confirm for backend creation
+                }
+            )
             return response.user
         except Exception as e:
             logger.error(f"Failed to create user: {e}")

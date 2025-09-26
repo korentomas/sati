@@ -45,7 +45,9 @@ async def register(request: RegisterRequest) -> TokenResponse:
 
 
 @router.post("/logout")
-async def logout(current_user: Dict[str, Any] = Depends(get_current_user)) -> Dict[str, str]:
+async def logout(
+    current_user: Dict[str, Any] = Depends(get_current_user),
+) -> Dict[str, str]:
     """
     Logout the current user.
 
