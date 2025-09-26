@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 class TestHealthEndpoints:
     """Test cases for health check endpoints."""
 
-    def test_liveness_check(self, client: TestClient):
+    def test_liveness_check(self, client: TestClient) -> None:
         """Test the liveness probe endpoint."""
         response = client.get("/api/v1/health/live")
 
@@ -21,7 +21,7 @@ class TestHealthEndpoints:
         timestamp = datetime.fromisoformat(data["timestamp"].replace("Z", "+00:00"))
         assert isinstance(timestamp, datetime)
 
-    def test_readiness_check(self, client: TestClient):
+    def test_readiness_check(self, client: TestClient) -> None:
         """Test the readiness probe endpoint."""
         response = client.get("/api/v1/health/ready")
 
@@ -44,7 +44,7 @@ class TestHealthEndpoints:
         assert services["database"] == "healthy"
         assert services["redis"] == "healthy"
 
-    def test_health_endpoints_content_type(self, client: TestClient):
+    def test_health_endpoints_content_type(self, client: TestClient) -> None:
         """Test that health endpoints return JSON content type."""
         live_response = client.get("/api/v1/health/live")
         ready_response = client.get("/api/v1/health/ready")
@@ -52,7 +52,7 @@ class TestHealthEndpoints:
         assert live_response.headers["content-type"] == "application/json"
         assert ready_response.headers["content-type"] == "application/json"
 
-    def test_health_endpoints_response_structure(self, client: TestClient):
+    def test_health_endpoints_response_structure(self, client: TestClient) -> None:
         """Test that health endpoints have consistent response structure."""
         live_response = client.get("/api/v1/health/live")
         ready_response = client.get("/api/v1/health/ready")

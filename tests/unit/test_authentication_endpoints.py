@@ -1,10 +1,14 @@
+from typing import Callable, Dict
+
 from fastapi.testclient import TestClient
 
 
 class TestAuthenticationEndpoints:
     """Test cases for authentication endpoints using real authentication."""
 
-    def test_login_success(self, client: TestClient, valid_login_data):
+    def test_login_success(
+        self, client: TestClient, valid_login_data: Dict[str, str]
+    ) -> None:
         """Test successful login with real credentials."""
         response = client.post("/api/v1/auth/login", json=valid_login_data)
 
@@ -19,7 +23,7 @@ class TestAuthenticationEndpoints:
         assert isinstance(data["expires_in"], int)
         assert data["expires_in"] > 0
 
-    def test_login_invalid_credentials(self, client: TestClient):
+    def test_login_invalid_credentials(self, client: TestClient) -> None:
         """Test login with invalid credentials."""
         invalid_data = {"email": "email@example.com", "password": "wrong_password"}
 
@@ -29,7 +33,7 @@ class TestAuthenticationEndpoints:
         data = response.json()
         assert "detail" in data
 
-    def test_login_nonexistent_user(self, client: TestClient):
+    def test_login_nonexistent_user(self, client: TestClient) -> None:
         """Test login with non-existent user."""
         invalid_data = {"email": "nonexistent@example.com", "password": "secret"}
 
@@ -39,7 +43,7 @@ class TestAuthenticationEndpoints:
         data = response.json()
         assert "detail" in data
 
-    def test_login_missing_fields(self, client: TestClient):
+    def test_login_missing_fields(self, client: TestClient) -> None:
         """Test login with missing required fields."""
         # Missing email
         response = client.post("/api/v1/auth/login", json={"password": "secret"})
@@ -53,7 +57,7 @@ class TestAuthenticationEndpoints:
         response = client.post("/api/v1/auth/login", json={})
         assert response.status_code == 422
 
-    def test_login_invalid_email_format(self, client: TestClient):
+    def test_login_invalid_email_format(self, client: TestClient) -> None:
         """Test login with invalid email format."""
         response = client.post(
             "/api/v1/auth/login", json={"email": "invalid-email", "password": "secret"}
@@ -63,8 +67,11 @@ class TestAuthenticationEndpoints:
         assert response.status_code == 401
 
     def test_get_profile_with_valid_token(
-        self, client: TestClient, valid_login_data, auth_headers
-    ):
+        self,
+        client: TestClient,
+        valid_login_data: Dict[str, str],
+        auth_headers: Callable[[str], Dict[str, str]],
+    ) -> None:
         """Test successful profile retrieval with valid token."""
         # First, login to get a token
         login_response = client.post("/api/v1/auth/login", json=valid_login_data)
@@ -86,7 +93,7 @@ class TestAuthenticationEndpoints:
         assert isinstance(data["user_id"], str)
         assert isinstance(data["created_at"], str)
 
-    def test_get_profile_without_token(self, client: TestClient):
+    def test_get_profile_without_token(self, client: TestClient) -> None:
         """Test profile retrieval without authentication."""
         response = client.get("/api/v1/auth/profile")
 
@@ -94,7 +101,7 @@ class TestAuthenticationEndpoints:
         data = response.json()
         assert "detail" in data
 
-    def test_get_profile_with_invalid_token(self, client: TestClient):
+    def test_get_profile_with_invalid_token(self, client: TestClient) -> None:
         """Test profile retrieval with invalid token."""
         headers = {"Authorization": "Bearer invalid_token"}
         response = client.get("/api/v1/auth/profile", headers=headers)
@@ -104,8 +111,12 @@ class TestAuthenticationEndpoints:
         assert "detail" in data
 
     def test_create_api_key_with_valid_token(
-        self, client: TestClient, valid_login_data, valid_api_key_request, auth_headers
-    ):
+        self,
+        client: TestClient,
+        valid_login_data: Dict[str, str],
+        valid_api_key_request: Dict[str, str],
+        auth_headers: Callable[[str], Dict[str, str]],
+    ) -> None:
         """Test successful API key creation with valid token."""
         # First, login to get a token
         login_response = client.post("/api/v1/auth/login", json=valid_login_data)
@@ -136,8 +147,8 @@ class TestAuthenticationEndpoints:
         assert data["api_key"].startswith("sat_")
 
     def test_create_api_key_without_token(
-        self, client: TestClient, valid_api_key_request
-    ):
+        self, client: TestClient, valid_api_key_request: Dict[str, str]
+    ) -> None:
         """Test API key creation without authentication."""
         response = client.post("/api/v1/auth/api-keys", json=valid_api_key_request)
 
@@ -146,8 +157,11 @@ class TestAuthenticationEndpoints:
         assert "detail" in data
 
     def test_create_api_key_missing_name(
-        self, client: TestClient, valid_login_data, auth_headers
-    ):
+        self,
+        client: TestClient,
+        valid_login_data: Dict[str, str],
+        auth_headers: Callable[[str], Dict[str, str]],
+    ) -> None:
         """Test API key creation with missing name."""
         # First, login to get a token
         login_response = client.post("/api/v1/auth/login", json=valid_login_data)
@@ -166,8 +180,12 @@ class TestAuthenticationEndpoints:
         assert response.status_code == 422
 
     def test_list_api_keys_with_valid_token(
-        self, client: TestClient, valid_login_data, valid_api_key_request, auth_headers
-    ):
+        self,
+        client: TestClient,
+        valid_login_data: Dict[str, str],
+        valid_api_key_request: Dict[str, str],
+        auth_headers: Callable[[str], Dict[str, str]],
+    ) -> None:
         """Test successful API keys listing with valid token."""
         # First, login to get a token
         login_response = client.post("/api/v1/auth/login", json=valid_login_data)
@@ -200,7 +218,7 @@ class TestAuthenticationEndpoints:
         assert "expires_at" in first_key
         assert "api_key" not in first_key  # API key should not be returned in list
 
-    def test_list_api_keys_without_token(self, client: TestClient):
+    def test_list_api_keys_without_token(self, client: TestClient) -> None:
         """Test API keys listing without authentication."""
         response = client.get("/api/v1/auth/api-keys")
 
@@ -209,8 +227,11 @@ class TestAuthenticationEndpoints:
         assert "detail" in data
 
     def test_list_api_keys_empty(
-        self, client: TestClient, valid_login_data, auth_headers
-    ):
+        self,
+        client: TestClient,
+        valid_login_data: Dict[str, str],
+        auth_headers: Callable[[str], Dict[str, str]],
+    ) -> None:
         """Test API keys listing when user has no keys (fresh user)."""
         # First, login to get a token
         login_response = client.post("/api/v1/auth/login", json=valid_login_data)

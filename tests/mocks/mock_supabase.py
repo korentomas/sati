@@ -61,12 +61,12 @@ class MockSupabaseAuth:
 
         # Create new user
         user_id = f"test-user-{len(self._test_users) + 1}"
-        self._test_users[email] = {
-            "password": password,
+        self._test_users[str(email)] = {
+            "password": str(password),
             "user_id": user_id,
         }
 
-        user = MockUser(email, user_id)
+        user = MockUser(str(email), user_id)
         return MockAuthResponse(user=user)
 
     def get_user(self, token: str) -> MockAuthResponse:
@@ -76,7 +76,7 @@ class MockSupabaseAuth:
             return MockAuthResponse(user=MockUser("email@example.com"))
         return MockAuthResponse()
 
-    def sign_out(self):
+    def sign_out(self) -> None:
         """Mock sign out."""
         pass
 
@@ -84,23 +84,23 @@ class MockSupabaseAuth:
 class MockSupabaseClient:
     """Mock Supabase client."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.auth = MockSupabaseAuth()
 
 
-def create_mock_supabase_auth():
+def create_mock_supabase_auth() -> MagicMock:
     """Create a mock SupabaseAuth instance for testing."""
     mock_auth = MagicMock()
     mock_auth.client = MockSupabaseClient()
     mock_auth.admin_client = MockSupabaseClient()
 
-    async def mock_verify_token(token: str):
+    async def mock_verify_token(token: str) -> Optional[MockUser]:
         """Mock token verification."""
         if token == "valid_token":
             return MockUser("email@example.com")
         return None
 
-    async def mock_verify_token_by_id(user_id: str):
+    async def mock_verify_token_by_id(user_id: str) -> None:
         """Mock user verification by ID."""
         return None
 

@@ -6,7 +6,7 @@ from app.core.config import settings
 class TestRootEndpoint:
     """Test cases for the root endpoint."""
 
-    def test_root_endpoint(self, client: TestClient):
+    def test_root_endpoint(self, client: TestClient) -> None:
         """Test the root endpoint returns correct information."""
         response = client.get("/")
 
@@ -21,13 +21,13 @@ class TestRootEndpoint:
         assert data["version"] == settings.version
         assert data["docs"] == f"{settings.api_v1_prefix}/docs"
 
-    def test_root_endpoint_content_type(self, client: TestClient):
+    def test_root_endpoint_content_type(self, client: TestClient) -> None:
         """Test that root endpoint returns JSON content type."""
         response = client.get("/")
 
         assert response.headers["content-type"] == "application/json"
 
-    def test_root_endpoint_response_structure(self, client: TestClient):
+    def test_root_endpoint_response_structure(self, client: TestClient) -> None:
         """Test that root endpoint has correct response structure."""
         response = client.get("/")
         data = response.json()
