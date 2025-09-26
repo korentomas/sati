@@ -6,6 +6,10 @@ from rio_tiler.io import Reader
 import numpy as np
 from io import BytesIO
 from PIL import Image
+import os
+
+# Configure AWS for unsigned requests (public S3 buckets)
+os.environ["AWS_NO_SIGN_REQUEST"] = "YES"
 
 router = APIRouter(prefix="/tiles", tags=["tiles"])
 
@@ -43,10 +47,24 @@ async def get_tile(
         PNG tile image
     """
     try:
+        # Convert s3:// URLs to https:// for public access
+        if url.startswith("s3://"):
+            # Convert s3://bucket/key to https://bucket.s3.amazonaws.com/key
+            parts = url[5:].split("/", 1)
+            if len(parts) == 2:
+                bucket = parts[0]
+                key = parts[1]
+                # Use the appropriate S3 endpoint
+                if "sentinel" in bucket:
+                    # Sentinel data is in us-west-2
+                    url = f"https://{bucket}.s3.us-west-2.amazonaws.com/{key}"
+                else:
+                    url = f"https://{bucket}.s3.amazonaws.com/{key}"
+
         # Parse bands
         band_indices = [int(b) for b in bands.split(",")]
 
-        # Open the COG
+        # Open the COG/JP2
         with Reader(url) as cog:
             # Check if tile is within bounds
             try:
@@ -69,26 +87,29 @@ async def get_tile(
             # Apply rescaling if provided
             if rescale:
                 min_val, max_val = map(float, rescale.split(","))
-                data = np.clip(
-                    (data - min_val) / (max_val - min_val) * 255, 0, 255
-                ).astype(np.uint8)
+                # Ensure we don't divide by zero
+                if max_val > min_val:
+                    data = np.clip(
+                        (data - min_val) / (max_val - min_val) * 255, 0, 255
+                    ).astype(np.uint8)
+                else:
+                    data = np.zeros_like(data, dtype=np.uint8)
             else:
                 # Auto-scale to 0-255 if not already
                 scaled_data = np.zeros_like(data, dtype=np.uint8)
                 for i in range(data.shape[0]):
                     band = data[i]
-                    if band.max() > 255:
-                        # Scale from data range to 0-255
-                        band_min = band.min()
-                        band_max = band.max()
-                        if band_max > band_min:
-                            scaled_data[i] = (
-                                (band - band_min) / (band_max - band_min) * 255
-                            ).astype(np.uint8)
-                        else:
-                            scaled_data[i] = band.astype(np.uint8)
+                    # Use percentile-based scaling for better contrast
+                    band_min = np.percentile(band, 2)  # 2nd percentile
+                    band_max = np.percentile(band, 98)  # 98th percentile
+
+                    if band_max > band_min:
+                        scaled_data[i] = np.clip(
+                            (band - band_min) / (band_max - band_min) * 255, 0, 255
+                        ).astype(np.uint8)
                     else:
-                        scaled_data[i] = band.astype(np.uint8)
+                        # If no variation, use middle gray
+                        scaled_data[i] = np.full_like(band, 128, dtype=np.uint8)
                 data = scaled_data
 
             # Convert to PIL Image
