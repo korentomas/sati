@@ -10,12 +10,11 @@ from app.api.v1.features.authentication.dto import (
 )
 from app.api.v1.features.authentication.errors import (
     api_key_creation_error,
-    invalid_credentials_error,
     user_not_found_error,
 )
 from app.api.v1.features.authentication.service import AuthService
-from app.api.v1.shared.auth.supabase import supabase_auth
 from app.api.v1.shared.auth.jwt import create_access_token
+from app.api.v1.shared.auth.supabase import supabase_auth
 from app.core.config import settings
 from app.core.logging import logger
 
@@ -129,7 +128,7 @@ class AuthHandler:
                     email=user.email,
                     created_at=user.created_at,
                 )
-        except:
+        except Exception:
             pass
 
         # Fallback to service method

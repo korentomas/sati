@@ -56,12 +56,6 @@ async def get_api_key_user(
 
     API keys are still handled locally, separate from Supabase user auth.
     """
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Invalid API key",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-
     token = credentials.credentials
 
     # Check if it's an API key (starts with 'sat_')

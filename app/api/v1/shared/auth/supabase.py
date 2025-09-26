@@ -1,8 +1,10 @@
 """Supabase authentication integration."""
 
 from typing import Dict, Optional
-from supabase import create_client, Client
+
 from gotrue import User
+from supabase import Client, create_client
+
 from app.core.config import settings
 from app.core.logging import logger
 
@@ -10,7 +12,7 @@ from app.core.logging import logger
 class SupabaseAuth:
     """Handle Supabase authentication."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize Supabase client."""
         if not settings.supabase_url or not settings.supabase_anon_key:
             raise ValueError("Supabase configuration is missing")

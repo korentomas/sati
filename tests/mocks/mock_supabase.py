@@ -1,8 +1,8 @@
 """Mock Supabase client for testing."""
 
-from typing import Dict, Optional, Any
-from unittest.mock import MagicMock
 from datetime import datetime
+from typing import Any, Dict, Optional
+from unittest.mock import MagicMock
 
 
 class MockUser:
