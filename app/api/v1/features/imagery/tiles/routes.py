@@ -233,8 +233,11 @@ async def get_sentinel2_tile(
                     raise HTTPException(status_code=400, detail=f"Invalid band: {band}")
 
                 # Construct COG URL for this band
-                # Example: https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs/36/Q/WD/2020/7/S2A_36QWD_20200701_0_L2A/B04.tif
-                cog_url = f"{SENTINEL2_COG_BASE}/sentinel-s2-l2a-cogs/{scene_id}/{band_mapping[band]}"
+                # Example: S2A_36QWD_20200701_0_L2A/B04.tif
+                cog_url = (
+                    f"{SENTINEL2_COG_BASE}/sentinel-s2-l2a-cogs/"
+                    f"{scene_id}/{band_mapping[band]}"
+                )
 
                 with Reader(cog_url) as cog:
                     img = cog.tile(x, y, z)
