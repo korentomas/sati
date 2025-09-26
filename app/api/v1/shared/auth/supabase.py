@@ -3,7 +3,7 @@
 from typing import Dict, Optional
 
 from gotrue import User
-from supabase import Client, create_client
+from supabase import create_client
 
 from app.core.config import settings
 from app.core.logging import logger
@@ -16,6 +16,7 @@ class SupabaseAuth:
         """Initialize Supabase client."""
         # For testing, allow dummy values
         import os
+        from typing import Any
 
         if os.getenv("TESTING") == "true" or not (
             settings.supabase_url and settings.supabase_anon_key
@@ -34,10 +35,10 @@ class SupabaseAuth:
         if os.getenv("TESTING") == "true":
             from unittest.mock import MagicMock
 
-            self.client = MagicMock()
-            self.admin_client = MagicMock()
+            self.client: Any = MagicMock()
+            self.admin_client: Any = MagicMock()
         else:
-            self.client: Client = create_client(
+            self.client = create_client(
                 settings.supabase_url, settings.supabase_anon_key
             )
 
@@ -47,7 +48,7 @@ class SupabaseAuth:
                 and settings.supabase_service_role_key != "your-service-role-key-here"
             ):
                 try:
-                    self.admin_client: Client = create_client(
+                    self.admin_client = create_client(
                         settings.supabase_url, settings.supabase_service_role_key
                     )
                 except Exception as e:
