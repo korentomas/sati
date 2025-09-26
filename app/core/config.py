@@ -14,7 +14,12 @@ class Settings(BaseSettings):
     # Redis
     redis_url: str = "redis://localhost:6379"
 
-    # JWT
+    # Supabase
+    supabase_url: str = ""
+    supabase_anon_key: str = ""
+    supabase_service_role_key: str = ""
+
+    # JWT (for API keys, not user auth)
     secret_key: str = "your-secret-key-here"
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
@@ -25,6 +30,9 @@ class Settings(BaseSettings):
     # Environment
     environment: str = "development"
     debug: bool = True
+
+    # Logging
+    log_level: str = "INFO"
 
     class Config:
         env_file = ".env"

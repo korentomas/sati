@@ -10,6 +10,13 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class RegisterRequest(BaseModel):
+    """Registration request schema."""
+
+    email: str
+    password: str
+
+
 class TokenResponse(BaseModel):
     """Token response schema."""
 

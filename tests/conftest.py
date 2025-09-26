@@ -1,13 +1,27 @@
+from unittest.mock import patch
+
 import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
+from tests.mocks.mock_supabase import create_mock_supabase_auth
 
 
 @pytest.fixture
-def client():
-    """Create a test client for the FastAPI application."""
-    return TestClient(app)
+def mock_supabase_auth():
+    """Create a mock Supabase authentication instance for testing."""
+    return create_mock_supabase_auth()
+
+
+@pytest.fixture
+def client(mock_supabase_auth):
+    """Create a test client for the FastAPI application with mocked Supabase."""
+    # Patch the supabase_auth module to use our mock
+    with patch(
+        "app.api.v1.features.authentication.handler.supabase_auth", mock_supabase_auth
+    ):
+        with patch("app.api.v1.shared.auth.deps.supabase_auth", mock_supabase_auth):
+            yield TestClient(app)
 
 
 @pytest.fixture
