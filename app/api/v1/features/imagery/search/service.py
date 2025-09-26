@@ -18,7 +18,7 @@ from app.core.logging import logger
 class SearchService:
     """Service for searching satellite imagery."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize search service."""
         self.stac_client = STACClient()
 

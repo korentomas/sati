@@ -65,7 +65,10 @@ async def get_tile(
                     url = f"https://{bucket}.s3.amazonaws.com/{key}"
 
         # Parse bands
-        band_indices = [int(b) for b in bands.split(",")]
+        if bands:
+            band_indices = [int(b) for b in bands.split(",")]
+        else:
+            band_indices = [1, 2, 3]  # Default to RGB
 
         # Open the COG/JP2
         with Reader(url) as cog:
@@ -221,7 +224,10 @@ async def get_sentinel2_tile(
     }
 
     try:
-        band_list = bands.split(",")
+        if bands:
+            band_list = bands.split(",")
+        else:
+            band_list = ["B04", "B03", "B02"]  # Default to RGB
 
         # For RGB composite, we need to combine multiple bands
         if len(band_list) == 3:
@@ -262,6 +268,12 @@ async def get_sentinel2_tile(
             buf.seek(0)
 
             return Response(content=buf.getvalue(), media_type="image/png")
+        else:
+            # Handle non-RGB band combinations
+            raise HTTPException(
+                status_code=400,
+                detail="Only 3-band RGB composites are currently supported"
+            )
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

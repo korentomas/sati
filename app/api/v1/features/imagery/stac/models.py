@@ -39,7 +39,7 @@ class STACCollection(BaseModel):
         """Get temporal extent from collection."""
         if "temporal" in self.extent:
             interval = self.extent["temporal"].get("interval", [[None, None]])[0]
-            return interval
+            return interval if isinstance(interval, list) else None
         return None
 
 

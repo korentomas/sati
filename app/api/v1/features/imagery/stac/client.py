@@ -16,7 +16,7 @@ from app.core.logging import logger
 class STACClient:
     """Client for interacting with STAC APIs."""
 
-    def __init__(self, api_url: str = "https://earth-search.aws.element84.com/v1"):
+    def __init__(self, api_url: str = "https://earth-search.aws.element84.com/v1") -> None:
         """Initialize STAC client.
 
         Args:
@@ -25,11 +25,11 @@ class STACClient:
         self.api_url = api_url
         self.client = AsyncClient(timeout=30.0)
 
-    async def __aenter__(self):
+    async def __aenter__(self) -> "STACClient":
         """Async context manager entry."""
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
+    async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         """Async context manager exit."""
         await self.client.aclose()
 
@@ -82,7 +82,7 @@ class STACClient:
             limit: Maximum number of results
             query: Additional query parameters (e.g., {"eo:cloud_cover": {"lt": 20}})
         """
-        payload = {
+        payload: Dict[str, Any] = {
             "limit": limit,
         }
 

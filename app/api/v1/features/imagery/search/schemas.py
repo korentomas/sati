@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator, ValidationInfo
 
 
 class GeoJSONGeometry(BaseModel):
@@ -18,10 +18,10 @@ class SearchRequest(BaseModel):
 
     geometry: Optional[GeoJSONGeometry] = None
     bbox: Optional[List[float]] = Field(
-        None,
+        default=None,
         description="Bounding box [west, south, east, north]",
-        min_items=4,
-        max_items=4,
+        min_length=4,
+        max_length=4,
     )
     date_from: datetime
     date_to: datetime
@@ -37,10 +37,11 @@ class SearchRequest(BaseModel):
     )
     limit: int = Field(20, ge=1, le=100, description="Maximum results per page")
 
-    @validator("date_to")
-    def validate_date_range(cls, v, values):
+    @field_validator("date_to")
+    @classmethod
+    def validate_date_range(cls, v: datetime, info: ValidationInfo) -> datetime:
         """Ensure date_to is after date_from."""
-        if "date_from" in values and v < values["date_from"]:
+        if "date_from" in info.data and v < info.data["date_from"]:
             raise ValueError("date_to must be after date_from")
         return v
 
