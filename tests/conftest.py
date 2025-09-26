@@ -1,4 +1,5 @@
-from unittest.mock import patch
+from typing import Callable, Dict, Generator
+from unittest.mock import MagicMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -8,13 +9,13 @@ from tests.mocks.mock_supabase import create_mock_supabase_auth
 
 
 @pytest.fixture
-def mock_supabase_auth():
+def mock_supabase_auth() -> MagicMock:
     """Create a mock Supabase authentication instance for testing."""
     return create_mock_supabase_auth()
 
 
 @pytest.fixture
-def client(mock_supabase_auth):
+def client(mock_supabase_auth: MagicMock) -> Generator[TestClient, None, None]:
     """Create a test client for the FastAPI application with mocked Supabase."""
     # Patch the supabase_auth module to use our mock
     with patch(
@@ -25,22 +26,22 @@ def client(mock_supabase_auth):
 
 
 @pytest.fixture
-def valid_login_data():
+def valid_login_data() -> Dict[str, str]:
     """Valid login credentials for testing."""
     return {"email": "email@example.com", "password": "secret"}
 
 
 @pytest.fixture
-def valid_api_key_request():
+def valid_api_key_request() -> Dict[str, str]:
     """Valid API key request for testing."""
     return {"name": "Test API Key", "description": "Test API key for testing purposes"}
 
 
 @pytest.fixture
-def auth_headers():
+def auth_headers() -> Callable[[str], Dict[str, str]]:
     """Get authentication headers for protected endpoints."""
 
-    def _get_auth_headers(access_token: str):
+    def _get_auth_headers(access_token: str) -> Dict[str, str]:
         return {"Authorization": f"Bearer {access_token}"}
 
     return _get_auth_headers
