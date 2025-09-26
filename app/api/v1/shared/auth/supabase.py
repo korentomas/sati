@@ -72,7 +72,9 @@ class SupabaseAuth:
             response = self.client.auth.get_user(token)
             if response and response.user:
                 logger.info(f"Token verified for user: {response.user.email}")
-                user: Optional[User] = response.user if isinstance(response.user, User) else None
+                user: Optional[User] = (
+                    response.user if isinstance(response.user, User) else None
+                )
                 return user
             return None
         except Exception as e:
@@ -142,7 +144,9 @@ class SupabaseAuth:
                     "email_confirm": True,  # Auto-confirm for backend creation
                 }
             )
-            user: Optional[User] = response.user if isinstance(response.user, User) else None
+            user: Optional[User] = (
+                response.user if isinstance(response.user, User) else None
+            )
             return user
         except Exception as e:
             logger.error(f"Failed to create user: {e}")
