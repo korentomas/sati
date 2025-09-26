@@ -8,7 +8,7 @@ redis==5.0.1
 python-jose[cryptography]==3.5.0
 python-multipart==0.0.20
 passlib[bcrypt]==1.7.4
-httpx==0.28.1
+httpx==0.27.2
 shapely==2.1.1
 geojson==3.1.0
 rasterio==1.4.3
@@ -19,3 +19,4 @@ python-dotenv==1.1.1
 numpy==2.3.2
 mypy==1.11.2
 pre-commit==4.0.1
+supabase==2.10.0

@@ -97,3 +97,10 @@ class AuthService:
                 key_info.pop("api_key", None)
                 user_keys.append(key_info)
         return user_keys
+
+    async def delete_api_key(self, user_id: str, key_id: str) -> bool:
+        """Delete an API key if it belongs to the user."""
+        if key_id in self._api_keys and self._api_keys[key_id]["user_id"] == user_id:
+            del self._api_keys[key_id]
+            return True
+        return False
