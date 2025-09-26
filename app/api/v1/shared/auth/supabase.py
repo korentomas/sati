@@ -1,6 +1,6 @@
 """Supabase authentication integration."""
 
-from typing import Dict, Optional, cast
+from typing import Dict, Optional
 
 from gotrue import User
 from supabase import create_client
@@ -32,7 +32,7 @@ class SupabaseAuth:
                 )
 
         # For testing, skip client creation if using test values
-        if os.getenv("TESTING") == "true":
+        if os.getenv("TESTING") == "true" or os.getenv("PYTEST_CURRENT_TEST"):
             from unittest.mock import MagicMock
 
             self.client: Any = MagicMock()
