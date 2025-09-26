@@ -1,12 +1,13 @@
 """Tile server routes for serving COG imagery as map tiles."""
 
-from typing import Optional
-from fastapi import APIRouter, HTTPException, Query, Response
-from rio_tiler.io import Reader
-import numpy as np
-from io import BytesIO
-from PIL import Image
 import os
+from io import BytesIO
+from typing import Optional
+
+import numpy as np
+from fastapi import APIRouter, HTTPException, Query, Response
+from PIL import Image
+from rio_tiler.io import Reader
 
 # Configure AWS for unsigned requests (public S3 buckets)
 os.environ["AWS_NO_SIGN_REQUEST"] = "YES"
@@ -28,7 +29,9 @@ async def get_tile(
     url: str = Query(..., description="COG URL to serve tiles from"),
     bands: Optional[str] = Query("1,2,3", description="Comma-separated band indices"),
     rescale: Optional[str] = Query(None, description="Min,max values for rescaling"),
-    color_formula: Optional[str] = Query(None, description="Color formula (e.g., NDVI)"),
+    color_formula: Optional[str] = Query(
+        None, description="Color formula (e.g., NDVI)"
+    ),
     token: Optional[str] = Query(None, description="Optional auth token"),
 ) -> Response:
     """
@@ -74,7 +77,7 @@ async def get_tile(
                 # Return transparent tile if outside bounds
                 if "is outside" in str(tile_error):
                     # Create a transparent 256x256 PNG
-                    transparent = Image.new('RGBA', (256, 256), (0, 0, 0, 0))
+                    transparent = Image.new("RGBA", (256, 256), (0, 0, 0, 0))
                     buf = BytesIO()
                     transparent.save(buf, format="PNG")
                     buf.seek(0)
@@ -118,9 +121,7 @@ async def get_tile(
                 pil_img = Image.fromarray(data[0], mode="L")
             elif data.shape[0] == 3:
                 # RGB
-                pil_img = Image.fromarray(
-                    np.transpose(data, (1, 2, 0)), mode="RGB"
-                )
+                pil_img = Image.fromarray(np.transpose(data, (1, 2, 0)), mode="RGB")
             else:
                 raise ValueError(f"Unsupported number of bands: {data.shape[0]}")
 
@@ -183,8 +184,12 @@ async def get_sentinel2_tile(
     z: int,
     x: int,
     y: int,
-    bands: Optional[str] = Query("B04,B03,B02", description="Band names (e.g., B04,B03,B02 for RGB)"),
-    rescale: Optional[str] = Query("0,3000", description="Min,max values for rescaling"),
+    bands: Optional[str] = Query(
+        "B04,B03,B02", description="Band names (e.g., B04,B03,B02 for RGB)"
+    ),
+    rescale: Optional[str] = Query(
+        "0,3000", description="Min,max values for rescaling"
+    ),
 ) -> Response:
     """
     Get a tile from Sentinel-2 COGs on AWS.
@@ -246,9 +251,7 @@ async def get_sentinel2_tile(
                 ).astype(np.uint8)
 
             # Convert to PIL Image
-            pil_img = Image.fromarray(
-                np.transpose(img_data, (1, 2, 0)), mode="RGB"
-            )
+            pil_img = Image.fromarray(np.transpose(img_data, (1, 2, 0)), mode="RGB")
 
             # Save to bytes
             buf = BytesIO()

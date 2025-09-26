@@ -5,11 +5,11 @@ from typing import List, Optional
 
 from app.api.v1.features.imagery.search.schemas import (
     CollectionInfo,
+    GeoJSONGeometry,
     SceneProperties,
     SceneResponse,
     SearchRequest,
     SearchResponse,
-    GeoJSONGeometry,
 )
 from app.api.v1.features.imagery.stac.client import STACClient
 from app.core.logging import logger
@@ -90,9 +90,11 @@ class SearchService:
                             datetime=item.datetime or datetime.now(),
                             cloud_cover=item.cloud_cover,
                             platform=item.properties.get("platform"),
-                            instrument=item.properties.get("instruments", [None])[0]
-                            if item.properties.get("instruments")
-                            else None,
+                            instrument=(
+                                item.properties.get("instruments", [None])[0]
+                                if item.properties.get("instruments")
+                                else None
+                            ),
                             gsd=item.properties.get("gsd"),
                         ),
                         thumbnail_url=item.thumbnail_url,
@@ -105,9 +107,11 @@ class SearchService:
 
                 # Build response
                 response = SearchResponse(
-                    total=results.context.get("matched", len(scenes))
-                    if results.context
-                    else len(scenes),
+                    total=(
+                        results.context.get("matched", len(scenes))
+                        if results.context
+                        else len(scenes)
+                    ),
                     returned=len(scenes),
                     scenes=scenes,
                     next_token=results.next_link,
@@ -138,9 +142,11 @@ class SearchService:
                         datetime=item.datetime or datetime.now(),
                         cloud_cover=item.cloud_cover,
                         platform=item.properties.get("platform"),
-                        instrument=item.properties.get("instruments", [None])[0]
-                        if item.properties.get("instruments")
-                        else None,
+                        instrument=(
+                            item.properties.get("instruments", [None])[0]
+                            if item.properties.get("instruments")
+                            else None
+                        ),
                         gsd=item.properties.get("gsd"),
                     ),
                     thumbnail_url=item.thumbnail_url,

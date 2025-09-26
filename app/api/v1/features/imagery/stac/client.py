@@ -149,9 +149,7 @@ class STACClient:
 
         # Add cloud cover filter if specified
         if cloud_cover_max is not None and cloud_cover_max < 100:
-            payload["query"] = {
-                "eo:cloud_cover": {"lt": cloud_cover_max}
-            }
+            payload["query"] = {"eo:cloud_cover": {"lt": cloud_cover_max}}
 
         try:
             response = await self.client.post(

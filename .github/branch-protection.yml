@@ -10,10 +10,10 @@ target_branches: "~DEFAULT_BRANCH"  # Targets main/master branch automatically
 
 # ✅ CRITICAL PROTECTIONS
 restrict_deletions: true           # ✅ Only allow users with bypass permission to delete
-block_force_pushes: true          # ✅ Prevent force pushes  
+block_force_pushes: true          # ✅ Prevent force pushes
 require_pull_request: true        # ✅ Require PRs before merging
 
-# ✅ PULL REQUEST REQUIREMENTS  
+# ✅ PULL REQUEST REQUIREMENTS
 pr_settings:
   required_approving_review_count: 1
   dismiss_stale_reviews_on_push: true
@@ -26,7 +26,7 @@ require_status_checks: true
 status_checks_must_be_up_to_date: true    # Require branches to be current
 required_status_checks:
   - "code-quality"    # Matches workflow job name
-  - "security"        # Matches workflow job name  
+  - "security"        # Matches workflow job name
   - "test"           # Matches workflow job name
 
 # ✅ COMMIT QUALITY
@@ -48,12 +48,12 @@ require_code_scanning: false              # Enable for advanced security scannin
 # 1. Go to: Repository Settings → Rules → Rulesets
 # 2. Click: "New branch ruleset"
 # 3. Copy settings from this file:
-#    - Name: "Main Branch Protection - Satellite Image API"  
+#    - Name: "Main Branch Protection - Satellite Image API"
 #    - Target: "Default branch"
 #    - Enforcement: "Active"
 # 4. Enable Branch Rules:
 #    ☑️ Restrict deletions
-#    ☑️ Block force pushes  
+#    ☑️ Block force pushes
 #    ☑️ Require linear history
 #    ☑️ Require a pull request before merging (1 approval, dismiss stale reviews)
 #    ☑️ Require status checks to pass (code-quality, security, test)
@@ -63,7 +63,7 @@ require_code_scanning: false              # Enable for advanced security scannin
 # === 📋 VERIFICATION CHECKLIST ===
 # After setup, verify:
 # ☑️ Direct pushes to main are blocked
-# ☑️ PRs require 1 approval  
+# ☑️ PRs require 1 approval
 # ☑️ All 3 status checks must pass
 # ☑️ Branches must be up-to-date before merge
 # ☑️ Force pushes are blocked
