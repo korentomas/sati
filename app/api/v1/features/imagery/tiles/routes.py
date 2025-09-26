@@ -48,8 +48,20 @@ async def get_tile(
 
         # Open the COG
         with Reader(url) as cog:
-            # Read the tile
-            img = cog.tile(x, y, z, indexes=band_indices)
+            # Check if tile is within bounds
+            try:
+                # Read the tile
+                img = cog.tile(x, y, z, indexes=band_indices)
+            except Exception as tile_error:
+                # Return transparent tile if outside bounds
+                if "is outside" in str(tile_error):
+                    # Create a transparent 256x256 PNG
+                    transparent = Image.new('RGBA', (256, 256), (0, 0, 0, 0))
+                    buf = BytesIO()
+                    transparent.save(buf, format="PNG")
+                    buf.seek(0)
+                    return Response(content=buf.getvalue(), media_type="image/png")
+                raise tile_error
 
             # Get the image data array
             data = img.data
