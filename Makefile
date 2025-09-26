@@ -141,3 +141,15 @@ quick-dev: install-dev format lint test
 # Pre-commit hook (run this before committing)
 pre-commit: format lint test-fast
 	@echo "Pre-commit checks passed! Ready to commit."
+
+# Install pre-commit hooks
+install-hooks:
+	@echo "Installing pre-commit hooks..."
+	pre-commit install
+	@echo "Pre-commit hooks installed!"
+
+# Run pre-commit on all files
+pre-commit-all:
+	@echo "Running pre-commit on all files..."
+	pre-commit run --all-files
+	@echo "Pre-commit checks completed!"
