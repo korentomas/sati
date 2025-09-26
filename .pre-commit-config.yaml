@@ -17,8 +17,8 @@ repos:
     rev: v1.11.2
     hooks:
       - id: mypy
-        additional_dependencies: [types-all]
-        args: [--ignore-missing-imports]
+        additional_dependencies: [types-requests, types-python-dateutil]
+        args: [--strict, --show-error-codes, --no-implicit-optional]
 
   - repo: https://github.com/pycqa/flake8
     rev: 7.1.1
@@ -31,6 +31,18 @@ repos:
     hooks:
       - id: bandit
         args: [-r, app/]
+
+  # Testing
+  - repo: local
+    hooks:
+      - id: pytest
+        name: pytest
+        entry: pytest
+        language: system
+        types: [python]
+        args: [--tb=short, -q]
+        pass_filenames: false
+        always_run: true
 
   # General file checks
   - repo: https://github.com/pre-commit/pre-commit-hooks
