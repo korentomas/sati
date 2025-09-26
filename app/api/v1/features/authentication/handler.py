@@ -67,9 +67,7 @@ class AuthHandler:
                 {
                     "email": register_request.email,
                     "password": register_request.password,
-                    "options": {
-                        "email_redirect_to": None,  # No email confirmation for now
-                    },
+                    "options": {},
                 }
             )
 
