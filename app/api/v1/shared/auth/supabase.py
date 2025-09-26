@@ -1,6 +1,6 @@
 """Supabase authentication integration."""
 
-from typing import Dict, Optional
+from typing import Dict, Optional, cast
 
 from gotrue import User
 from supabase import create_client
@@ -72,7 +72,8 @@ class SupabaseAuth:
             response = self.client.auth.get_user(token)
             if response and response.user:
                 logger.info(f"Token verified for user: {response.user.email}")
-                return response.user
+                user: Optional[User] = response.user if isinstance(response.user, User) else None
+                return user
             return None
         except Exception as e:
             logger.error(f"Token verification failed: {e}")
@@ -141,7 +142,8 @@ class SupabaseAuth:
                     "email_confirm": True,  # Auto-confirm for backend creation
                 }
             )
-            return response.user
+            user: Optional[User] = response.user if isinstance(response.user, User) else None
+            return user
         except Exception as e:
             logger.error(f"Failed to create user: {e}")
             return None
