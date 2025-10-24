@@ -1,6 +1,4 @@
-# Diagrama UML Core - Satellite Imagery Gateway
-
-## Diagrama de Clases Principal
+# uml mvp
 
 ```mermaid
 classDiagram
@@ -109,18 +107,18 @@ classDiagram
 
 ## Componentes Core del Sistema
 
-### 🔐 Sistema de Autenticación
+### Sistema de Autenticación
 - **AuthService**: Servicio principal de autenticación
 - **SupabaseAuth**: Integración con Supabase
 - **LoginRequest/TokenResponse**: DTOs de autenticación
 
-### 🛰️ Sistema de Imágenes Satelitales
+### Sistema de Imágenes Satelitales
 - **SearchService**: Servicio principal de búsqueda
 - **STACClient**: Cliente para APIs STAC externas
 - **STACItem**: Modelo de escena satelital
 - **SearchRequest/SearchResponse**: DTOs de búsqueda
 
-### ⚙️ Configuración
+### Configuración
 - **Settings**: Configuración centralizada
 
 ## Flujo Principal
