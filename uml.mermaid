@@ -1,0 +1,200 @@
+classDiagram
+    %% ==============================
+    %% CORE CONFIGURATION
+    %% ==============================
+    class Settings {
+        +str app_name
+        +str version
+        +str supabase_url
+        +str secret_key
+        +str api_v1_prefix
+    }
+
+    %% ==============================
+    %% AUTHENTICATION CORE
+    %% ==============================
+    class AuthService {
+        +authenticate_user(LoginRequest) TokenResponse
+        +create_api_key(user_id, ApiKeyRequest) ApiKeyResponse
+        +get_user_profile(user_id) UserProfile
+    }
+
+    class SupabaseAuth {
+        +verify_token(token) User
+        +create_user(email, password) User
+    }
+
+    %% ==============================
+    %% IMAGERY CORE
+    %% ==============================
+    class SearchService {
+        +search_imagery(SearchRequest) SearchResponse
+        +list_collections() List~CollectionInfo~
+        +get_scene(collection_id, scene_id) SceneResponse
+    }
+
+    class STACClient {
+        +search(collections, bbox, datetime) STACItemCollection
+        +get_item(collection_id, item_id) STACItem
+        +list_collections() List~STACCollection~
+    }
+
+    %% ==============================
+    %% CORE MODELS
+    %% ==============================
+    class STACItem {
+        +str id
+        +str collection
+        +List~float~ bbox
+        +Dict properties
+        +Dict assets
+        +datetime() datetime
+        +cloud_cover() float
+    }
+
+    class SearchRequest {
+        +datetime date_from
+        +datetime date_to
+        +List~float~ bbox
+        +List~str~ collections
+        +float cloud_cover_max
+    }
+
+    class SearchResponse {
+        +int total
+        +List~SceneResponse~ scenes
+        +Optional~str~ next_token
+    }
+
+    class SceneResponse {
+        +str id
+        +str collection
+        +List~float~ bbox
+        +Dict properties
+        +Optional~str~ thumbnail_url
+    }
+
+    class LoginRequest {
+        +str email
+        +str password
+    }
+
+    class TokenResponse {
+        +str access_token
+        +str token_type
+        +int expires_in
+    }
+
+    class UserProfile {
+        +str user_id
+        +str email
+        +str created_at
+    }
+
+    %% ==============================
+    %% NEW FUNCTIONALITY (FACADE MODULE)
+    %% ==============================
+    class ProjectManager {
+        +load_local_data(file_path) Layer
+        +search_and_import_rasters(aoi, filters) List~Layer~
+        +visualize_layers() MapView
+        +perform_analysis(expression, layers) Layer
+        +export_project(output_path)
+        +load_project(project_path)
+        +collect_metrics() MetricsReport
+    }
+
+    class DataImporter {
+        +load_local(file_path) Layer
+        +search_online(aoi, filters) List~Layer~
+        +download_raster(url) Layer
+    }
+
+    class LayerManager {
+        +list_layers() List~Layer~
+        +set_crs(layer_id, crs)
+        +toggle_visibility(layer_id, visible)
+        +reorder_layers(order)
+        +set_opacity(layer_id, opacity)
+    }
+
+    class MapVisualizer {
+        +render_map(layers) MapView
+        +add_basemap(provider)
+        +zoom_to_layer(layer)
+    }
+
+    class AnalysisEngine {
+        +calculate(expression, layers) Layer
+        +clip_raster_by_aoi(raster, aoi) Layer
+        +measure_distance(geom1, geom2, unit) float
+    }
+
+    class ExportService {
+        +export_layer(layer, format) File
+        +save_project(project) Path
+        +load_project(path) Project
+    }
+
+    class MetricsCollector {
+        +collect_performance_data() MetricsReport
+        +log_error(event)
+        +generate_report() Dict
+    }
+
+    class Layer {
+        +str id
+        +str name
+        +str type
+        +str crs
+        +bool visible
+        +float opacity
+        +Dict metadata
+    }
+
+    class MapView {
+        +Dict layers
+        +str base_map
+    }
+
+    class MetricsReport {
+        +float avg_response_time
+        +int total_requests
+        +int errors
+        +Dict additional_metrics
+    }
+
+    %% ==============================
+    %% RELATIONSHIPS
+    %% ==============================
+
+    %% Existing system
+    AuthService --> LoginRequest : uses
+    AuthService --> TokenResponse : returns
+    AuthService --> UserProfile : returns
+    AuthService --> SupabaseAuth : uses
+    SupabaseAuth --> Settings : uses
+
+    SearchService --> SearchRequest : uses
+    SearchService --> SearchResponse : returns
+    SearchService --> SceneResponse : returns
+    SearchService --> STACClient : uses
+    STACClient --> STACItem : returns
+    STACClient --> Settings : uses
+
+    %% Facade integration
+    ProjectManager --> DataImporter : uses
+    ProjectManager --> LayerManager : uses
+    ProjectManager --> MapVisualizer : uses
+    ProjectManager --> AnalysisEngine : uses
+    ProjectManager --> ExportService : uses
+    ProjectManager --> MetricsCollector : uses
+    ProjectManager --> Settings : uses
+    ProjectManager --> AuthService : uses
+
+    DataImporter --> SearchService : uses
+    LayerManager --> Layer : manages
+    MapVisualizer --> LayerManager : uses
+    AnalysisEngine --> LayerManager : uses
+    ExportService --> LayerManager : uses
+    MetricsCollector --> ProjectManager : monitors
