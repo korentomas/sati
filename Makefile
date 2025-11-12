@@ -1,4 +1,4 @@
-.PHONY: help dev up down build test lint format clean install check-all security-check
+.PHONY: help dev up down build test lint format clean install check-all security-check pre-commit ci-check
 
 # Default target
 help:
