@@ -30,6 +30,14 @@ class AuthHandler:
         else:
             self.auth_service = None
 
+    def _create_token_data(self, user) -> Dict[str, Any]:
+        """Create token data from user object."""
+        return {
+            "sub": str(user.id),
+            "email": user.email,
+            "user_id": str(user.id),
+        }
+
     def login(self, login_request: LoginRequest) -> Optional[TokenResponse]:
         """Handle user login with password verification."""
         if not self.auth_service:
@@ -44,11 +52,7 @@ class AuthHandler:
                 return None
 
             # Create JWT token
-            token_data = {
-                "sub": str(user.id),
-                "email": user.email,
-                "user_id": str(user.id),
-            }
+            token_data = self._create_token_data(user)
             access_token = create_access_token(token_data)
 
             logger.info(f"User logged in: {user.email}")
@@ -73,11 +77,7 @@ class AuthHandler:
             )
 
             # Create JWT token
-            token_data = {
-                "sub": str(user.id),
-                "email": user.email,
-                "user_id": str(user.id),
-            }
+            token_data = self._create_token_data(user)
             access_token = create_access_token(token_data)
 
             logger.info(f"User registered: {user.email}")

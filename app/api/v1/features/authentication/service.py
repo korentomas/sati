@@ -9,17 +9,10 @@ from sqlalchemy.orm import Session
 from app.api.v1.features.authentication.dto import (
     ApiKeyRequest,
     ApiKeyResponse,
-    LoginRequest,
-    TokenResponse,
     UserProfile,
 )
-from app.api.v1.shared.auth.jwt import (
-    create_access_token,
-    get_password_hash,
-    verify_password,
-)
+from app.api.v1.shared.auth.jwt import get_password_hash, verify_password
 from app.api.v1.shared.db.models import User
-from app.core.config import settings
 
 
 class AuthService:
@@ -53,7 +46,7 @@ class AuthService:
         # Find user
         user = (
             self.db.query(User)
-            .filter(User.email == email, User.is_active == True)
+            .filter(User.email == email, User.is_active.is_(True))
             .first()
         )
 

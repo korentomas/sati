@@ -46,7 +46,7 @@ def get_current_user(
         raise credentials_exception
 
     # Verify user exists in DB (token revocation check)
-    user = db.query(User).filter(User.id == user_uuid, User.is_active == True).first()
+    user = db.query(User).filter(User.id == user_uuid, User.is_active.is_(True)).first()
 
     if not user:
         raise credentials_exception
@@ -121,7 +121,7 @@ def get_optional_user(
                     user_uuid = UUID(user_id)
                     user = (
                         db.query(User)
-                        .filter(User.id == user_uuid, User.is_active == True)
+                        .filter(User.id == user_uuid, User.is_active.is_(True))
                         .first()
                     )
                     if user:
