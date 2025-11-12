@@ -19,6 +19,7 @@ from app.api.v1.features.imagery.downloads.schemas import (
     JobStatusResponse,
     ProcessingRequest,
 )
+from app.api.v1.features.imagery.downloads.download_service import DirectDownloadService
 from app.api.v1.shared.auth.deps import get_current_user
 from app.workers.config import get_redis_pool
 from app.workers.tasks import get_job_status, update_job_status
@@ -51,7 +52,6 @@ async def queue_download(
             urls=[str(url) for url in request.urls],
             user_id=user_id,
             metadata=request.metadata,
-            _queue_name="arq:downloads",
             _job_id=job_id,
             _defer_by=0,  # Start immediately
             _expires=3600,  # Expire after 1 hour
@@ -111,7 +111,6 @@ async def queue_processing(
             filepath=request.filepath,
             operations=request.operations,
             user_id=user_id,
-            _queue_name="arq:processing",
             _job_id=job_id,
         )
 
@@ -158,7 +157,6 @@ async def queue_export(
             file_paths=request.file_paths,
             export_format=request.export_format.value,
             user_id=user_id,
-            _queue_name="arq:exports",
             _job_id=job_id,
         )
 
@@ -419,6 +417,192 @@ async def get_job_result(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to retrieve job result",
+        )
+
+
+# Direct download endpoints for processed images
+@router.get("/processed/{file_id}/download")
+async def download_processed_image(
+    file_id: str,
+    current_user: dict = Depends(get_current_user),
+) -> Any:
+    """Download a processed satellite image directly to user's computer.
+
+    This endpoint is used after a user has processed satellite imagery
+    and wants to download the result to their local machine.
+
+    Args:
+        file_id: The ID of the processed file to download
+
+    Returns:
+        FileResponse that triggers browser download
+    """
+    try:
+        user_id = str(current_user.get("user_id", "anonymous"))
+
+        # Construct file path based on user_id and file_id
+        # This assumes processed images are stored in a user-specific directory
+        file_path = f"/app/downloads/{user_id}/processed/{file_id}"
+
+        # Use the DirectDownloadService to handle the download
+        return await DirectDownloadService.download_processed_image(
+            file_path=file_path,
+            filename=f"processed_{file_id}"
+        )
+
+    except FileNotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Processed image not found"
+        )
+    except Exception as e:
+        logger.error(f"Failed to download processed image: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to download processed image"
+        )
+
+
+@router.post("/processed/batch-download")
+async def download_processed_batch(
+    file_ids: List[str],
+    current_user: dict = Depends(get_current_user),
+    redis_pool: ArqRedis = Depends(get_redis_pool),
+) -> JobResponse:
+    """Queue a batch download of multiple processed images as a zip file.
+
+    This creates a background job that will:
+    1. Collect all requested processed images
+    2. Create a zip file containing all images
+    3. Make the zip available for download
+
+    Args:
+        file_ids: List of processed file IDs to download
+
+    Returns:
+        JobResponse with job_id to track progress
+    """
+    try:
+        job_id = str(uuid4())
+        user_id = str(current_user.get("user_id", "anonymous"))
+
+        # Enqueue the batch download job
+        job = await redis_pool.enqueue_job(
+            "create_batch_download",
+            job_id=job_id,
+            file_ids=file_ids,
+            user_id=user_id,
+            _job_id=job_id,
+        )
+
+        await update_job_status(
+            redis_pool,
+            job_id,
+            JobStatus.PENDING.value,
+            {
+                "user_id": user_id,
+                "file_count": len(file_ids),
+                "type": "batch_download"
+            }
+        )
+
+        logger.info(f"Queued batch download job {job_id} for {len(file_ids)} files")
+
+        return JobResponse(
+            job_id=job_id,
+            status=JobStatus.PENDING,
+            created_at=datetime.now(timezone.utc),
+            message=f"Batch download queued for {len(file_ids)} file(s)"
+        )
+
+    except Exception as e:
+        logger.error(f"Failed to queue batch download: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to queue batch download"
+        )
+
+
+@router.get("/processed/batch/{job_id}/download")
+async def download_batch_result(
+    job_id: str,
+    current_user: dict = Depends(get_current_user),
+    redis_pool: ArqRedis = Depends(get_redis_pool),
+) -> Any:
+    """Download the result of a batch download job.
+
+    Once a batch download job is completed, this endpoint
+    allows the user to download the resulting zip file.
+
+    Args:
+        job_id: The job ID of the batch download
+
+    Returns:
+        FileResponse with the zip file for download
+    """
+    try:
+        # Check job status
+        status_data = await get_job_status(redis_pool, job_id)
+
+        if status_data.get("status") != JobStatus.COMPLETED.value:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Batch download is not ready yet"
+            )
+
+        # Get the zip file path from job result
+        job_result = await redis_pool.job_result(job_id)
+        if not job_result or "zip_path" not in job_result:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Batch download result not found"
+            )
+
+        zip_path = job_result["zip_path"]
+
+        # Stream the zip file to user
+        return await DirectDownloadService.download_processed_image(
+            file_path=zip_path,
+            filename=f"batch_download_{job_id}.zip"
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to download batch result: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to download batch result"
+        )
+
+
+@router.get("/url-download")
+async def download_from_url(
+    url: str,
+    current_user: dict = Depends(get_current_user),
+) -> Any:
+    """Download an image from URL directly to user's computer.
+
+    This is for immediate downloads without queuing, useful for
+    downloading processed results that are already available at a URL.
+
+    Args:
+        url: The URL of the image to download
+
+    Returns:
+        StreamingResponse that proxies the download
+    """
+    try:
+        return await DirectDownloadService.download_from_url(
+            image_url=url,
+            processed=True
+        )
+
+    except Exception as e:
+        logger.error(f"Failed to download from URL: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to download from URL"
         )
 
 

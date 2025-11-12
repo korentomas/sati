@@ -272,6 +272,104 @@ async def export_dataset(
         raise
 
 
+async def create_batch_download(
+    ctx: Dict[str, Any],
+    job_id: str,
+    file_ids: List[str],
+    user_id: str,
+) -> Dict[str, Any]:
+    """Create a zip file containing multiple processed images for download.
+
+    Args:
+        ctx: Arq context
+        job_id: Job identifier
+        file_ids: List of file IDs to include in the batch
+        user_id: User ID
+
+    Returns:
+        Dict with batch download information including zip file path
+    """
+    import zipfile
+
+    redis: ArqRedis = ctx["redis"]
+
+    await update_job_status(redis, job_id, "in_progress", {"stage": "preparing_batch"})
+
+    try:
+        # Create batch download directory
+        batch_dir = DOWNLOAD_DIR / user_id / "batches"
+        batch_dir.mkdir(parents=True, exist_ok=True)
+
+        # Create zip file for the batch
+        zip_path = batch_dir / f"batch_{job_id}.zip"
+        included_files = []
+        missing_files = []
+
+        with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
+            for file_id in file_ids:
+                # Look for processed file in user's processed directory
+                processed_file = DOWNLOAD_DIR / user_id / "processed" / file_id
+
+                # Also check if file_id is already a full path
+                if not processed_file.exists():
+                    processed_file = Path(file_id) if Path(file_id).exists() else None
+
+                if processed_file and processed_file.exists():
+                    # Add file to zip with a clean name
+                    arcname = f"processed_{Path(file_id).name}"
+                    zf.write(processed_file, arcname)
+                    included_files.append(str(file_id))
+
+                    # Update progress
+                    progress = len(included_files) / len(file_ids) * 100
+                    await update_job_status(
+                        redis,
+                        job_id,
+                        "in_progress",
+                        {
+                            "stage": "creating_batch",
+                            "progress": progress,
+                            "files_processed": len(included_files),
+                            "total_files": len(file_ids)
+                        }
+                    )
+                else:
+                    missing_files.append(str(file_id))
+                    logger.warning(f"File not found for batch download: {file_id}")
+
+        # Determine final status
+        if included_files and not missing_files:
+            status = "completed"
+            message = f"Batch download ready with {len(included_files)} files"
+        elif included_files:
+            status = "partial"
+            message = f"Batch download ready with {len(included_files)}/{len(file_ids)} files"
+        else:
+            status = "failed"
+            message = "No files found for batch download"
+
+        result = {
+            "job_id": job_id,
+            "status": status,
+            "zip_path": str(zip_path),
+            "zip_size": zip_path.stat().st_size if zip_path.exists() else 0,
+            "included_files": included_files,
+            "missing_files": missing_files,
+            "total_requested": len(file_ids),
+            "total_included": len(included_files),
+            "message": message,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }
+
+        await update_job_status(redis, job_id, status, result)
+        return result
+
+    except Exception as e:
+        logger.error(f"Batch download creation failed: {e}")
+        await update_job_status(redis, job_id, "failed", {"error": str(e)})
+        raise
+
+
 async def cleanup_old_downloads(ctx: Dict[str, Any]) -> Dict[str, Any]:
     """Periodic task to clean up old download files.
 
@@ -351,5 +449,6 @@ functions = [
     download_imagery,
     process_imagery,
     export_dataset,
+    create_batch_download,
     cleanup_old_downloads,
 ]

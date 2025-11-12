@@ -8,7 +8,7 @@ services:
     environment:
       - DATABASE_URL=postgresql://satellite_user:satellite_pass@db:5432/satellite_imagery
       - REDIS_URL=redis://redis:6379
-      - SECRET_KEY=your-secret-key-here-change-in-production
+      - SECRET_KEY=${SECRET_KEY:-your-secret-key-here-change-in-production}
     depends_on:
       - db
       - redis
@@ -22,7 +22,7 @@ services:
     environment:
       - DATABASE_URL=postgresql://satellite_user:satellite_pass@db:5432/satellite_imagery
       - REDIS_URL=redis://redis:6379
-      - SECRET_KEY=your-secret-key-here-change-in-production
+      - SECRET_KEY=${SECRET_KEY:-your-secret-key-here-change-in-production}
     depends_on:
       - db
       - redis
