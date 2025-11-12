@@ -99,7 +99,7 @@ class AuthHandler:
         logger.info(f"User logged out: {current_user.get('email')}")
         return True
 
-    async def create_api_key(
+    def create_api_key(
         self, current_user: Dict[str, Any], request: ApiKeyRequest
     ) -> ApiKeyResponse:
         """Handle API key creation."""
@@ -107,7 +107,7 @@ class AuthHandler:
             raise api_key_creation_error()
         try:
             user_id = current_user["sub"]
-            api_key_response = await self.auth_service.create_api_key(user_id, request)
+            api_key_response = self.auth_service.create_api_key(user_id, request)
             return api_key_response
         except Exception:
             raise api_key_creation_error()
@@ -122,16 +122,16 @@ class AuthHandler:
             raise user_not_found_error()
         return profile
 
-    async def list_api_keys(self, current_user: Dict[str, Any]) -> List[dict]:
+    def list_api_keys(self, current_user: Dict[str, Any]) -> List[dict]:
         """Handle listing user's API keys."""
         if not self.auth_service:
             return []
         user_id = current_user["sub"]
-        return await self.auth_service.list_api_keys(user_id)
+        return self.auth_service.list_api_keys(user_id)
 
-    async def delete_api_key(self, current_user: Dict[str, Any], key_id: str) -> bool:
+    def delete_api_key(self, current_user: Dict[str, Any], key_id: str) -> bool:
         """Handle API key deletion."""
         if not self.auth_service:
             return False
         user_id = current_user["sub"]
-        return await self.auth_service.delete_api_key(user_id, key_id)
+        return self.auth_service.delete_api_key(user_id, key_id)

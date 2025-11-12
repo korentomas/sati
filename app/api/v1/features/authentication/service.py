@@ -1,7 +1,7 @@
 import secrets
 import uuid
 from datetime import datetime, timedelta
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 from uuid import UUID
 
 from sqlalchemy.orm import Session
@@ -67,7 +67,7 @@ class AuthService:
 
         return user
 
-    async def create_api_key(
+    def create_api_key(
         self, user_id: str, request: ApiKeyRequest
     ) -> ApiKeyResponse:
         """Generate a new API key for the user."""
@@ -106,7 +106,7 @@ class AuthService:
             created_at=user.created_at.isoformat() if user.created_at else "",
         )
 
-    async def list_api_keys(self, user_id: str) -> List[dict]:
+    def list_api_keys(self, user_id: str) -> List[dict]:
         """List all API keys for a user."""
         user_keys = []
         for key_data in self._api_keys.values():
@@ -117,9 +117,36 @@ class AuthService:
                 user_keys.append(key_info)
         return user_keys
 
-    async def delete_api_key(self, user_id: str, key_id: str) -> bool:
+    def delete_api_key(self, user_id: str, key_id: str) -> bool:
         """Delete an API key if it belongs to the user."""
         if key_id in self._api_keys and self._api_keys[key_id]["user_id"] == user_id:
             del self._api_keys[key_id]
             return True
         return False
+
+    def validate_api_key(self, api_key: str) -> Optional[Dict[str, Any]]:
+        """
+        Validate an API key and return its data if valid.
+
+        Args:
+            api_key: The API key to validate
+
+        Returns:
+            Dict with key data if valid, None if invalid or expired
+        """
+        from datetime import datetime
+
+        # Search for the API key in our storage
+        for key_data in self._api_keys.values():
+            if key_data.get("api_key") == api_key:
+                # Check if key is expired
+                expires_at = datetime.fromisoformat(key_data["expires_at"].rstrip("Z"))
+                if datetime.utcnow() < expires_at:
+                    return key_data
+                else:
+                    from app.core.logging import logger
+
+                    logger.warning(f"Expired API key used: {api_key[:10]}...")
+                    return None
+
+        return None

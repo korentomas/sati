@@ -66,20 +66,35 @@ def get_api_key_user(
     """
     Dependency for API key based authentication.
 
-    API keys are still handled locally, separate from user auth.
+    API keys are validated against stored keys in AuthService.
     """
     token = credentials.credentials
 
     # Check if it's an API key (starts with 'sat_')
     if token.startswith("sat_"):
-        # TODO: Implement API key validation from database
-        # For now, return a mock user
-        logger.info(f"API key authentication attempted: {token[:10]}...")
-        return {
-            "sub": "api-key-user",
-            "email": "api@example.com",
-            "is_api_key": True,
-        }
+        from app.api.v1.features.authentication.service import AuthService
+
+        auth_service = AuthService(db)
+        # Validate the API key against stored keys
+        api_key_data = auth_service.validate_api_key(token)
+
+        if api_key_data:
+            logger.info(f"API key authentication successful: {token[:10]}...")
+            return {
+                "sub": api_key_data["user_id"],
+                "email": f"api-key-{api_key_data['key_id'][:8]}@api.local",
+                "is_api_key": True,
+                "key_id": api_key_data["key_id"],
+                "key_name": api_key_data.get("name", "Unnamed Key"),
+            }
+        else:
+            # Invalid API key - raise unauthorized
+            logger.warning(f"Invalid API key attempted: {token[:10]}...")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid API key",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
 
     # Otherwise, use regular user authentication
     return get_current_user(credentials, db)

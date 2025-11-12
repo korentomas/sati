@@ -85,7 +85,7 @@ def get_profile(
 
 
 @router.post("/api-keys", response_model=ApiKeyResponse)
-async def create_api_key(
+def create_api_key(
     request: ApiKeyRequest,
     current_user: Dict[str, Any] = Depends(get_current_user),
     db: Session = Depends(get_db_session),
@@ -96,11 +96,11 @@ async def create_api_key(
     API keys are for programmatic access to the backend API.
     """
     handler = AuthHandler(db)
-    return await handler.create_api_key(current_user, request)
+    return handler.create_api_key(current_user, request)
 
 
 @router.get("/api-keys")
-async def list_api_keys(
+def list_api_keys(
     current_user: Dict[str, Any] = Depends(get_current_user),
     db: Session = Depends(get_db_session),
 ) -> List[dict]:
@@ -110,18 +110,18 @@ async def list_api_keys(
     Returns metadata only, not the actual keys.
     """
     handler = AuthHandler(db)
-    return await handler.list_api_keys(current_user)
+    return handler.list_api_keys(current_user)
 
 
 @router.delete("/api-keys/{key_id}")
-async def delete_api_key(
+def delete_api_key(
     key_id: str,
     current_user: Dict[str, Any] = Depends(get_current_user),
     db: Session = Depends(get_db_session),
 ) -> Dict[str, str]:
     """Delete an API key."""
     handler = AuthHandler(db)
-    success = await handler.delete_api_key(current_user, key_id)
+    success = handler.delete_api_key(current_user, key_id)
     if not success:
         raise HTTPException(status_code=404, detail="API key not found")
     return {"message": "API key deleted successfully"}
