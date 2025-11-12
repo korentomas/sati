@@ -4,7 +4,7 @@ pydantic[mypy]==2.11.7
 pydantic-settings==2.10.1
 sqlmodel==0.0.14
 sqlalchemy==2.0.36
-psycopg2-binary==2.9.9
+psycopg2-binary==2.9.11
 asyncpg==0.30.0
 redis==5.0.1
 python-jose[cryptography]==3.5.0
