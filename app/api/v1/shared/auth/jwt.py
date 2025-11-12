@@ -29,11 +29,16 @@ def create_access_token(
 
 
 def verify_token(token: str) -> Optional[Dict[str, Any]]:
-    """Verify and decode a JWT token."""
+    """Verify and decode a JWT token with better error handling."""
     try:
         payload: Dict[str, Any] = jwt.decode(
             token, settings.secret_key, algorithms=[settings.algorithm]
         )
+        
+        # Verify required fields
+        if "sub" not in payload:
+            return None
+        
         return payload
     except JWTError:
         return None

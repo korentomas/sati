@@ -1,22 +1,25 @@
 from typing import Any, Dict, Optional
+from sqlalchemy.orm import Session
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.api.v1.shared.auth.jwt import verify_token
-from app.api.v1.shared.auth.supabase import supabase_auth
+from app.api.v1.shared.db.deps import get_db_session
+from app.api.v1.shared.db.models import User
 from app.core.logging import logger
 
 security = HTTPBearer()
 
 
-async def get_current_user(
+def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
+    db: Session = Depends(get_db_session),
 ) -> Dict[str, Any]:
     """
-    Dependency to get current authenticated user from Supabase JWT token.
-
-    This verifies the token with Supabase and returns user information.
+    Dependency to get current authenticated user from JWT token.
+    
+    Verifies the token and checks that user exists in database.
     """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -26,35 +29,47 @@ async def get_current_user(
 
     token = credentials.credentials
 
-    # First try to verify with Supabase
-    user = await supabase_auth.verify_token(token)
-    if user:
-        return {
-            "sub": user.id,
-            "email": user.email,
-            "user_id": user.id,
-            "created_at": user.created_at,
-        }
-
-    # Fallback to local JWT verification (for API keys)
+    # Verify JWT token
     payload = verify_token(token)
     if payload is None:
         raise credentials_exception
 
     user_id = payload.get("sub")
-    if user_id is None:
+    if not user_id:
         raise credentials_exception
 
-    return payload
+    # Convert string to UUID
+    from uuid import UUID
+    try:
+        user_uuid = UUID(user_id)
+    except ValueError:
+        raise credentials_exception
+
+    # Verify user exists in DB (token revocation check)
+    user = db.query(User).filter(
+        User.id == user_uuid,
+        User.is_active == True
+    ).first()
+
+    if not user:
+        raise credentials_exception
+
+    return {
+        "sub": str(user.id),
+        "email": user.email,
+        "user_id": str(user.id),
+        "created_at": user.created_at.isoformat() if user.created_at else "",
+    }
 
 
-async def get_api_key_user(
+def get_api_key_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
+    db: Session = Depends(get_db_session),
 ) -> Dict[str, Any]:
     """
     Dependency for API key based authentication.
-
-    API keys are still handled locally, separate from Supabase user auth.
+    
+    API keys are still handled locally, separate from user auth.
     """
     token = credentials.credentials
 
@@ -70,11 +85,12 @@ async def get_api_key_user(
         }
 
     # Otherwise, use regular user authentication
-    return await get_current_user(credentials)
+    return get_current_user(credentials, db)
 
 
-async def get_optional_user(
+def get_optional_user(
     authorization: Optional[str] = None,
+    db: Session = Depends(get_db_session),
 ) -> Optional[Dict[str, Any]]:
     """
     Optional authentication - returns user if token is valid, None otherwise.
@@ -85,13 +101,22 @@ async def get_optional_user(
     token = authorization.replace("Bearer ", "")
 
     try:
-        user = await supabase_auth.verify_token(token)
-        if user:
-            return {
-                "sub": user.id,
-                "email": user.email,
-                "user_id": user.id,
-            }
+        payload = verify_token(token)
+        if payload:
+            user_id = payload.get("sub")
+            if user_id:
+                from uuid import UUID
+                try:
+                    user_uuid = UUID(user_id)
+                    user = db.query(User).filter(User.id == user_uuid, User.is_active == True).first()
+                    if user:
+                        return {
+                            "sub": str(user.id),
+                            "email": user.email,
+                            "user_id": str(user.id),
+                        }
+                except ValueError:
+                    pass
     except Exception:
         pass
 

@@ -1,4 +1,5 @@
 from typing import Any, Dict, List
+from sqlalchemy.orm import Session
 
 from fastapi import APIRouter, Depends, HTTPException
 
@@ -12,111 +13,123 @@ from app.api.v1.features.authentication.dto import (
 )
 from app.api.v1.features.authentication.handler import AuthHandler
 from app.api.v1.shared.auth.deps import get_current_user
+from app.api.v1.shared.db.deps import get_db_session
+from app.core.logging import logger
 
 router = APIRouter()
-auth_handler = AuthHandler()
 
 
 @router.post("/login", response_model=TokenResponse)
-async def login(request: LoginRequest) -> TokenResponse:
+def login(
+    request: LoginRequest,
+    db: Session = Depends(get_db_session),
+) -> TokenResponse:
     """
     Login with email and password.
-
-    Backend handles Supabase authentication internally and returns
-    a backend JWT token for API access.
+    
+    Returns a JWT token for API access.
     """
-    token_response = await auth_handler.login(request)
+    handler = AuthHandler(db)
+    token_response = handler.login(request)
     if not token_response:
         raise HTTPException(status_code=401, detail="Invalid credentials")
     return token_response
 
 
 @router.post("/register", response_model=TokenResponse)
-async def register(request: RegisterRequest) -> TokenResponse:
+def register(
+    request: RegisterRequest,
+    db: Session = Depends(get_db_session),
+) -> TokenResponse:
     """
-    Register a new user.
-
-    Backend creates user in Supabase and returns a backend JWT token.
+    Register a new user with password hashing.
+    
+    Returns a JWT token for API access.
     """
-    token_response = await auth_handler.register(request)
+    handler = AuthHandler(db)
+    token_response = handler.register(request)
     if not token_response:
         raise HTTPException(status_code=400, detail="Registration failed")
     return token_response
 
 
 @router.post("/logout")
-async def logout(
+def logout(
     current_user: Dict[str, Any] = Depends(get_current_user),
 ) -> Dict[str, str]:
     """
     Logout the current user.
-
-    Backend handles Supabase logout internally.
     """
-    await auth_handler.logout(current_user)
+    # Logout is just logging, no DB needed
+    logger.info(f"User logged out: {current_user.get('email')}")
     return {"message": "Logged out successfully"}
 
 
 @router.get("/profile", response_model=UserProfile)
-async def get_profile(
+def get_profile(
     current_user: Dict[str, Any] = Depends(get_current_user),
+    db: Session = Depends(get_db_session),
 ) -> UserProfile:
     """
     Get current user profile.
-
-    Requires a valid backend JWT token.
+    
+    Requires a valid JWT token.
     """
-    return UserProfile(
-        user_id=current_user["user_id"],
-        email=current_user["email"],
-        created_at=current_user.get("created_at", ""),
-    )
+    handler = AuthHandler(db)
+    return handler.get_profile(current_user)
 
 
 @router.post("/api-keys", response_model=ApiKeyResponse)
 async def create_api_key(
-    request: ApiKeyRequest, current_user: Dict[str, Any] = Depends(get_current_user)
+    request: ApiKeyRequest,
+    current_user: Dict[str, Any] = Depends(get_current_user),
+    db: Session = Depends(get_db_session),
 ) -> ApiKeyResponse:
     """
     Generate a new API key for the authenticated user.
 
     API keys are for programmatic access to the backend API.
     """
-    return await auth_handler.create_api_key(current_user, request)
+    handler = AuthHandler(db)
+    return await handler.create_api_key(current_user, request)
 
 
 @router.get("/api-keys")
 async def list_api_keys(
     current_user: Dict[str, Any] = Depends(get_current_user),
+    db: Session = Depends(get_db_session),
 ) -> List[dict]:
     """
     List all API keys for the authenticated user.
 
     Returns metadata only, not the actual keys.
     """
-    return await auth_handler.list_api_keys(current_user)
+    handler = AuthHandler(db)
+    return await handler.list_api_keys(current_user)
 
 
 @router.delete("/api-keys/{key_id}")
 async def delete_api_key(
     key_id: str,
     current_user: Dict[str, Any] = Depends(get_current_user),
+    db: Session = Depends(get_db_session),
 ) -> Dict[str, str]:
     """Delete an API key."""
-    success = await auth_handler.delete_api_key(current_user, key_id)
+    handler = AuthHandler(db)
+    success = await handler.delete_api_key(current_user, key_id)
     if not success:
         raise HTTPException(status_code=404, detail="API key not found")
     return {"message": "API key deleted successfully"}
 
 
 @router.get("/verify")
-async def verify_token(
+def verify_token(
     current_user: Dict[str, Any] = Depends(get_current_user),
 ) -> Dict[str, Any]:
     """
     Verify if the current token is valid.
 
-    Used to check if the backend JWT is still valid.
+    Used to check if the JWT is still valid.
     """
     return {
         "valid": True,

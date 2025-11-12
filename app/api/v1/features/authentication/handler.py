@@ -1,4 +1,5 @@
 from typing import Any, Dict, List, Optional
+from sqlalchemy.orm import Session
 
 from app.api.v1.features.authentication.dto import (
     ApiKeyRequest,
@@ -14,7 +15,6 @@ from app.api.v1.features.authentication.errors import (
 )
 from app.api.v1.features.authentication.service import AuthService
 from app.api.v1.shared.auth.jwt import create_access_token
-from app.api.v1.shared.auth.supabase import supabase_auth
 from app.core.config import settings
 from app.core.logging import logger
 
@@ -22,86 +22,79 @@ from app.core.logging import logger
 class AuthHandler:
     """Authentication handler for orchestrating service calls."""
 
-    def __init__(self) -> None:
-        self.auth_service = AuthService()
+    def __init__(self, db: Optional[Session] = None) -> None:
+        self.db = db
+        if db:
+            self.auth_service = AuthService(db)
+        else:
+            self.auth_service = None
 
-    async def login(self, login_request: LoginRequest) -> Optional[TokenResponse]:
-        """Handle user login using Supabase."""
+    def login(self, login_request: LoginRequest) -> Optional[TokenResponse]:
+        """Handle user login with password verification."""
         try:
-            # Authenticate with Supabase
-            response = supabase_auth.client.auth.sign_in_with_password(
-                {
-                    "email": login_request.email,
-                    "password": login_request.password,
-                }
+            # Authenticate user
+            user = self.auth_service.authenticate_user(
+                login_request.email,
+                login_request.password
             )
-
-            if response.user:
-                # Create backend JWT token
-                token_data = {
-                    "sub": response.user.id,
-                    "email": response.user.email,
-                    "user_id": response.user.id,
-                }
-                access_token = create_access_token(token_data)
-
-                logger.info(f"User logged in: {response.user.email}")
-
-                return TokenResponse(
-                    access_token=access_token,
-                    token_type="bearer",
-                    expires_in=settings.access_token_expire_minutes * 60,
-                )
-            return None
+            
+            if not user:
+                return None
+            
+            # Create JWT token
+            token_data = {
+                "sub": str(user.id),
+                "email": user.email,
+                "user_id": str(user.id),
+            }
+            access_token = create_access_token(token_data)
+            
+            logger.info(f"User logged in: {user.email}")
+            
+            return TokenResponse(
+                access_token=access_token,
+                token_type="bearer",
+                expires_in=settings.access_token_expire_minutes * 60,
+            )
         except Exception as e:
             logger.error(f"Login failed: {e}")
             return None
 
-    async def register(
-        self, register_request: RegisterRequest
-    ) -> Optional[TokenResponse]:
-        """Handle user registration using Supabase."""
+    def register(self, register_request: RegisterRequest) -> Optional[TokenResponse]:
+        """Handle user registration with password hashing."""
         try:
-            # Register with Supabase
-            response = supabase_auth.client.auth.sign_up(
-                {
-                    "email": register_request.email,
-                    "password": register_request.password,
-                    "options": {},
-                }
+            # Create user with hashed password
+            user = self.auth_service.register_user(
+                register_request.email, 
+                register_request.password
             )
-
-            if response.user:
-                # Create backend JWT token
-                token_data = {
-                    "sub": response.user.id,
-                    "email": response.user.email,
-                    "user_id": response.user.id,
-                }
-                access_token = create_access_token(token_data)
-
-                logger.info(f"User registered: {response.user.email}")
-
-                return TokenResponse(
-                    access_token=access_token,
-                    token_type="bearer",
-                    expires_in=settings.access_token_expire_minutes * 60,
-                )
+            
+            # Create JWT token
+            token_data = {
+                "sub": str(user.id),
+                "email": user.email,
+                "user_id": str(user.id),
+            }
+            access_token = create_access_token(token_data)
+            
+            logger.info(f"User registered: {user.email}")
+            
+            return TokenResponse(
+                access_token=access_token,
+                token_type="bearer",
+                expires_in=settings.access_token_expire_minutes * 60,
+            )
+        except ValueError as e:
+            logger.error(f"Registration failed: {e}")
             return None
         except Exception as e:
             logger.error(f"Registration failed: {e}")
             return None
 
-    async def logout(self, current_user: Dict[str, Any]) -> bool:
+    def logout(self, current_user: Dict[str, Any]) -> bool:
         """Handle user logout."""
-        try:
-            # Sign out from Supabase
-            supabase_auth.client.auth.sign_out()
-            logger.info(f"User logged out: {current_user.get('email')}")
-            return True
-        except Exception as e:
-            logger.error(f"Logout failed: {e}")
-            return False
+        logger.info(f"User logged out: {current_user.get('email')}")
+        return True
 
     async def create_api_key(
         self, current_user: Dict[str, Any], request: ApiKeyRequest
@@ -114,23 +107,10 @@ class AuthHandler:
         except Exception:
             raise api_key_creation_error()
 
-    async def get_profile(self, current_user: Dict[str, Any]) -> UserProfile:
+    def get_profile(self, current_user: Dict[str, Any]) -> UserProfile:
         """Handle user profile retrieval."""
         user_id = current_user["sub"]
-        # Get profile from Supabase
-        try:
-            user = await supabase_auth.verify_token_by_id(user_id)
-            if user:
-                return UserProfile(
-                    user_id=user.id,
-                    email=user.email,
-                    created_at=user.created_at,
-                )
-        except Exception:
-            pass
-
-        # Fallback to service method
-        profile = await self.auth_service.get_user_profile(user_id)
+        profile = self.auth_service.get_user_profile(user_id)
         if not profile:
             raise user_not_found_error()
         return profile

@@ -4,13 +4,49 @@ from fastapi.testclient import TestClient
 
 
 class TestAuthenticationEndpoints:
-    """Test cases for authentication endpoints using real authentication."""
+    """Test cases for authentication endpoints using database."""
+
+    def test_register_success(self, client: TestClient) -> None:
+        """Test successful user registration."""
+        register_data = {"email": "newuser@example.com", "password": "password123"}
+        response = client.post("/api/v1/auth/register", json=register_data)
+
+        assert response.status_code == 200
+        data = response.json()
+
+        assert "access_token" in data
+        assert "token_type" in data
+        assert "expires_in" in data
+        assert data["token_type"] == "bearer"
+        assert isinstance(data["access_token"], str)
+        assert isinstance(data["expires_in"], int)
+        assert data["expires_in"] > 0
+
+    def test_register_duplicate_email(self, client: TestClient) -> None:
+        """Test registration with duplicate email."""
+        register_data = {"email": "duplicate@example.com", "password": "password123"}
+        
+        # First registration
+        response1 = client.post("/api/v1/auth/register", json=register_data)
+        assert response1.status_code == 200
+        
+        # Second registration with same email
+        response2 = client.post("/api/v1/auth/register", json=register_data)
+        assert response2.status_code == 400
+        assert "detail" in response2.json()
 
     def test_login_success(
-        self, client: TestClient, valid_login_data: Dict[str, str]
+        self, client: TestClient
     ) -> None:
-        """Test successful login with real credentials."""
-        response = client.post("/api/v1/auth/login", json=valid_login_data)
+        """Test successful login after registration."""
+        # First register
+        register_data = {"email": "loginuser@example.com", "password": "password123"}
+        register_response = client.post("/api/v1/auth/register", json=register_data)
+        assert register_response.status_code == 200
+        
+        # Then login
+        login_data = {"email": "loginuser@example.com", "password": "password123"}
+        response = client.post("/api/v1/auth/login", json=login_data)
 
         assert response.status_code == 200
         data = response.json()
@@ -25,8 +61,12 @@ class TestAuthenticationEndpoints:
 
     def test_login_invalid_credentials(self, client: TestClient) -> None:
         """Test login with invalid credentials."""
-        invalid_data = {"email": "email@example.com", "password": "wrong_password"}
-
+        # Register first
+        register_data = {"email": "testuser@example.com", "password": "correct_password"}
+        client.post("/api/v1/auth/register", json=register_data)
+        
+        # Try wrong password
+        invalid_data = {"email": "testuser@example.com", "password": "wrong_password"}
         response = client.post("/api/v1/auth/login", json=invalid_data)
 
         assert response.status_code == 401
@@ -69,15 +109,15 @@ class TestAuthenticationEndpoints:
     def test_get_profile_with_valid_token(
         self,
         client: TestClient,
-        valid_login_data: Dict[str, str],
         auth_headers: Callable[[str], Dict[str, str]],
     ) -> None:
         """Test successful profile retrieval with valid token."""
-        # First, login to get a token
-        login_response = client.post("/api/v1/auth/login", json=valid_login_data)
-        assert login_response.status_code == 200
-
-        access_token = login_response.json()["access_token"]
+        # First register
+        register_data = {"email": "profileuser@example.com", "password": "password123"}
+        register_response = client.post("/api/v1/auth/register", json=register_data)
+        assert register_response.status_code == 200
+        
+        access_token = register_response.json()["access_token"]
         headers = auth_headers(access_token)
 
         # Now get profile with the token
@@ -89,7 +129,7 @@ class TestAuthenticationEndpoints:
         assert "user_id" in data
         assert "email" in data
         assert "created_at" in data
-        assert data["email"] == valid_login_data["email"]
+        assert data["email"] == register_data["email"]
         assert isinstance(data["user_id"], str)
         assert isinstance(data["created_at"], str)
 
@@ -113,16 +153,16 @@ class TestAuthenticationEndpoints:
     def test_create_api_key_with_valid_token(
         self,
         client: TestClient,
-        valid_login_data: Dict[str, str],
         valid_api_key_request: Dict[str, str],
         auth_headers: Callable[[str], Dict[str, str]],
     ) -> None:
         """Test successful API key creation with valid token."""
-        # First, login to get a token
-        login_response = client.post("/api/v1/auth/login", json=valid_login_data)
-        assert login_response.status_code == 200
+        # First register to get a token
+        register_data = {"email": "apikeyuser@example.com", "password": "password123"}
+        register_response = client.post("/api/v1/auth/register", json=register_data)
+        assert register_response.status_code == 200
 
-        access_token = login_response.json()["access_token"]
+        access_token = register_response.json()["access_token"]
         headers = auth_headers(access_token)
 
         # Create API key
@@ -159,15 +199,15 @@ class TestAuthenticationEndpoints:
     def test_create_api_key_missing_name(
         self,
         client: TestClient,
-        valid_login_data: Dict[str, str],
         auth_headers: Callable[[str], Dict[str, str]],
     ) -> None:
         """Test API key creation with missing name."""
-        # First, login to get a token
-        login_response = client.post("/api/v1/auth/login", json=valid_login_data)
-        assert login_response.status_code == 200
+        # First register to get a token
+        register_data = {"email": "missingname@example.com", "password": "password123"}
+        register_response = client.post("/api/v1/auth/register", json=register_data)
+        assert register_response.status_code == 200
 
-        access_token = login_response.json()["access_token"]
+        access_token = register_response.json()["access_token"]
         headers = auth_headers(access_token)
 
         # Try to create API key without name
@@ -182,16 +222,16 @@ class TestAuthenticationEndpoints:
     def test_list_api_keys_with_valid_token(
         self,
         client: TestClient,
-        valid_login_data: Dict[str, str],
         valid_api_key_request: Dict[str, str],
         auth_headers: Callable[[str], Dict[str, str]],
     ) -> None:
         """Test successful API keys listing with valid token."""
-        # First, login to get a token
-        login_response = client.post("/api/v1/auth/login", json=valid_login_data)
-        assert login_response.status_code == 200
+        # First register to get a token
+        register_data = {"email": "listkeys@example.com", "password": "password123"}
+        register_response = client.post("/api/v1/auth/register", json=register_data)
+        assert register_response.status_code == 200
 
-        access_token = login_response.json()["access_token"]
+        access_token = register_response.json()["access_token"]
         headers = auth_headers(access_token)
 
         # Create an API key first
@@ -229,15 +269,15 @@ class TestAuthenticationEndpoints:
     def test_list_api_keys_empty(
         self,
         client: TestClient,
-        valid_login_data: Dict[str, str],
         auth_headers: Callable[[str], Dict[str, str]],
     ) -> None:
         """Test API keys listing when user has no keys (fresh user)."""
-        # First, login to get a token
-        login_response = client.post("/api/v1/auth/login", json=valid_login_data)
-        assert login_response.status_code == 200
+        # First register to get a token
+        register_data = {"email": "emptykeys@example.com", "password": "password123"}
+        register_response = client.post("/api/v1/auth/register", json=register_data)
+        assert register_response.status_code == 200
 
-        access_token = login_response.json()["access_token"]
+        access_token = register_response.json()["access_token"]
         headers = auth_headers(access_token)
 
         # List API keys (should be empty for a fresh user)

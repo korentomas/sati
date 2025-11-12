@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     )
 
     # Database
-    database_url: str = "sqlite:///./satellite_imagery.db"
+    database_url: str = "postgresql://satellite_user:satellite_pass@localhost:5432/satellite_imagery"
 
     # Redis
     redis_url: str = "redis://localhost:6379"

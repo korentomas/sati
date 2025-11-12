@@ -1,28 +1,55 @@
 from typing import Callable, Dict, Generator
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, Session
 
 from app.main import app
-from tests.mocks.mock_supabase import create_mock_supabase_auth
+from app.api.v1.shared.db.base import Base
+from app.api.v1.shared.db.deps import get_db_session
+
+
+# Test database (SQLite in memory for fast tests)
+TEST_DATABASE_URL = "sqlite:///:memory:"
+test_engine = create_engine(TEST_DATABASE_URL, connect_args={"check_same_thread": False})
+TestSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_engine)
+
+
+@pytest.fixture(scope="function")
+def db_session() -> Generator[Session, None, None]:
+    """Create a test database session."""
+    # Create all tables
+    Base.metadata.create_all(bind=test_engine)
+    
+    # Create session
+    session = TestSessionLocal()
+    try:
+        yield session
+    finally:
+        session.rollback()
+        session.close()
+        # Drop all tables after test
+        Base.metadata.drop_all(bind=test_engine)
 
 
 @pytest.fixture
-def mock_supabase_auth() -> MagicMock:
-    """Create a mock Supabase authentication instance for testing."""
-    return create_mock_supabase_auth()
-
-
-@pytest.fixture
-def client(mock_supabase_auth: MagicMock) -> Generator[TestClient, None, None]:
-    """Create a test client for the FastAPI application with mocked Supabase."""
-    # Patch the supabase_auth module to use our mock
-    with patch(
-        "app.api.v1.features.authentication.handler.supabase_auth", mock_supabase_auth
-    ):
-        with patch("app.api.v1.shared.auth.deps.supabase_auth", mock_supabase_auth):
-            yield TestClient(app)
+def client(db_session: Session) -> Generator[TestClient, None, None]:
+    """Create a test client for the FastAPI application with test database."""
+    # Override get_db_session dependency to use test database
+    def override_get_db():
+        try:
+            yield db_session
+        finally:
+            pass  # Don't close here, handled by fixture
+    
+    app.dependency_overrides[get_db_session] = override_get_db
+    
+    yield TestClient(app)
+    
+    # Clean up
+    app.dependency_overrides.clear()
 
 
 @pytest.fixture
