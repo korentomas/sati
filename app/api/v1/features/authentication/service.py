@@ -2,6 +2,7 @@ import secrets
 import uuid
 from datetime import datetime, timedelta
 from typing import List, Optional
+from uuid import UUID
 from sqlalchemy.orm import Session
 
 from app.api.v1.features.authentication.dto import (
@@ -85,7 +86,6 @@ class AuthService:
 
     def get_user_profile(self, user_id: str) -> Optional[UserProfile]:
         """Get user profile by ID."""
-        from uuid import UUID
         try:
             user_uuid = UUID(user_id)
         except ValueError:

@@ -1,4 +1,5 @@
 from typing import Any, Dict, Optional
+from uuid import UUID
 from sqlalchemy.orm import Session
 
 from fastapi import Depends, HTTPException, status
@@ -39,7 +40,6 @@ def get_current_user(
         raise credentials_exception
 
     # Convert string to UUID
-    from uuid import UUID
     try:
         user_uuid = UUID(user_id)
     except ValueError:
@@ -105,7 +105,6 @@ def get_optional_user(
         if payload:
             user_id = payload.get("sub")
             if user_id:
-                from uuid import UUID
                 try:
                     user_uuid = UUID(user_id)
                     user = db.query(User).filter(User.id == user_uuid, User.is_active == True).first()
