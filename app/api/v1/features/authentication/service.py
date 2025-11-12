@@ -1,6 +1,6 @@
 import secrets
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 from uuid import UUID
 
@@ -74,7 +74,7 @@ class AuthService:
         key_id = str(uuid.uuid4())
         api_key = f"sat_{secrets.token_urlsafe(32)}"
 
-        created_at = datetime.utcnow()
+        created_at = datetime.now(timezone.utc)
         expires_at = created_at + timedelta(days=365)  # API keys expire in 1 year
 
         key_data = {
@@ -141,7 +141,7 @@ class AuthService:
             if key_data.get("api_key") == api_key:
                 # Check if key is expired
                 expires_at = datetime.fromisoformat(key_data["expires_at"].rstrip("Z"))
-                if datetime.utcnow() < expires_at:
+                if datetime.now(timezone.utc).replace(tzinfo=None) < expires_at:
                     return key_data
                 else:
                     from app.core.logging import logger
