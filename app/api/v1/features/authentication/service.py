@@ -60,9 +60,7 @@ class AuthService:
 
         return user
 
-    def create_api_key(
-        self, user_id: str, request: ApiKeyRequest
-    ) -> ApiKeyResponse:
+    def create_api_key(self, user_id: str, request: ApiKeyRequest) -> ApiKeyResponse:
         """Generate a new API key for the user."""
         key_id = str(uuid.uuid4())
         api_key = f"sat_{secrets.token_urlsafe(32)}"

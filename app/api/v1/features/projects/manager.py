@@ -1,5 +1,6 @@
 class ProjectManager:
     """Manages user projects."""
+
     def __init__(self):
         self.projects = {}
 
