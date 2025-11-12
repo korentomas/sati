@@ -9,6 +9,8 @@ RUN apt-get update && apt-get install -y \
     g++ \
     gdal-bin \
     libgdal-dev \
+    libpq-dev \
+    postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for better caching

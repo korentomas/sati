@@ -6,10 +6,16 @@ help:
 	@echo ""
 	@echo "Development:"
 	@echo "  dev         - Run development server with auto-reload"
+	@echo "  dev-full    - Start services in Docker, then run dev server locally"
 	@echo "  install     - Install Python dependencies"
 	@echo "  install-dev - Install development dependencies"
 	@echo ""
-	@echo "Docker:"
+	@echo "Docker Services:"
+	@echo "  services-up   - Start only DB and Redis in Docker"
+	@echo "  services-down - Stop DB and Redis"
+	@echo "  services-restart - Restart DB and Redis"
+	@echo ""
+	@echo "Docker (Full):"
 	@echo "  up          - Start all services with Docker Compose"
 	@echo "  down        - Stop all services"
 	@echo "  build       - Build Docker images"
@@ -32,13 +38,37 @@ dev:
 	@echo "Starting development server..."
 	uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir app/
 
+dev-full:
+	@echo "Starting services and development server..."
+	@make services-up
+	@echo ""
+	@echo "Starting development server..."
+	uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir app/
+
 # Docker operations
+services-up:
+	@echo "Starting database and redis services..."
+	docker-compose up -d db redis
+	@echo "Waiting for services to be ready..."
+	@sleep 3
+	@echo "Services are running!"
+	@echo "  PostgreSQL: localhost:5432"
+	@echo "  Redis: localhost:6379"
+
+services-down:
+	@echo "Stopping database and redis services..."
+	docker-compose stop db redis
+
+services-restart:
+	@make services-down
+	@make services-up
+
 up:
-	@echo "Starting services..."
+	@echo "Starting all services (including API)..."
 	docker-compose up -d
 
 down:
-	@echo "Stopping services..."
+	@echo "Stopping all services..."
 	docker-compose down
 
 build:
