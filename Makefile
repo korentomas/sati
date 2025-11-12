@@ -45,6 +45,14 @@ dev-full:
 	@echo "Starting development server..."
 	uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir app/
 
+worker:
+	@echo "Starting Arq worker..."
+	arq app.workers.worker.WorkerConfig
+
+worker-dev:
+	@echo "Starting Arq worker with watch..."
+	watchmedo auto-restart --pattern="*.py" --recursive --signal SIGTERM arq app.workers.worker.WorkerConfig
+
 # Docker operations
 services-up:
 	@echo "Starting database and redis services..."

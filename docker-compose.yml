@@ -14,7 +14,24 @@ services:
       - redis
     volumes:
       - ./app:/app/app
+      - ./downloads:/app/downloads  # Shared downloads directory
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  worker:
+    build: .
+    environment:
+      - DATABASE_URL=postgresql://satellite_user:satellite_pass@db:5432/satellite_imagery
+      - REDIS_URL=redis://redis:6379
+      - SECRET_KEY=your-secret-key-here-change-in-production
+    depends_on:
+      - db
+      - redis
+    volumes:
+      - ./app:/app/app
+      - ./downloads:/app/downloads  # Shared downloads directory
+    command: arq app.workers.worker.WorkerConfig
+    deploy:
+      replicas: 2  # Run 2 worker instances for parallel processing
 
   db:
     image: postgres:15
