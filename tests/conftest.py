@@ -37,12 +37,20 @@ def db_session() -> Generator[Session, None, None]:
 @pytest.fixture
 def client(db_session: Session) -> Generator[TestClient, None, None]:
     """Create a test client for the FastAPI application with test database."""
+    # Ensure tables are created in the same engine
+    Base.metadata.create_all(bind=test_engine)
+    
     # Override get_db_session dependency to use test database
+    # Create a new session from the same engine to ensure tables exist
     def override_get_db():
+        session = TestSessionLocal()
         try:
-            yield db_session
+            # Ensure tables exist
+            Base.metadata.create_all(bind=test_engine)
+            yield session
         finally:
-            pass  # Don't close here, handled by fixture
+            session.rollback()
+            session.close()
     
     app.dependency_overrides[get_db_session] = override_get_db
     

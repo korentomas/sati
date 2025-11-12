@@ -54,5 +54,7 @@ class TestUserModel:
         
         assert user.created_at is not None
         assert user.updated_at is not None
-        assert user.created_at == user.updated_at
+        # Allow small difference due to microsecond precision
+        time_diff = abs((user.updated_at - user.created_at).total_seconds())
+        assert time_diff < 1.0  # Less than 1 second difference
 

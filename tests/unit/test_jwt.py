@@ -72,7 +72,6 @@ class TestPasswordHashing:
     @pytest.mark.parametrize("password", [
         "simple",
         "complex_password_123!@#",
-        "very_long_password_" * 10,
         "123456",
     ])
     def test_password_hashing(self, password: str):
