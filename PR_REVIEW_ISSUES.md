@@ -7,12 +7,12 @@
 
 **Problema:** El archivo completo de Supabase todavía existe en el código pero NO se está usando en ningún lugar después de la migración.
 
-**Impacto:** 
+**Impacto:**
 - Código muerto que confunde
 - Dependencias innecesarias (`supabase`, `gotrue`)
 - Mantenimiento innecesario
 
-**Solución:** 
+**Solución:**
 - ❌ **ELIMINAR** el archivo `app/api/v1/shared/auth/supabase.py`
 - O documentar claramente por qué se mantiene (si hay alguna razón)
 
@@ -28,7 +28,7 @@ No se encontraron imports activos (excepto en el archivo mismo).
 ### 2. Configuración de Supabase en `config.py` no se usa
 **Ubicación:** `app/core/config.py` líneas 17-20
 
-**Problema:** 
+**Problema:**
 ```python
 # Supabase
 supabase_url: str = ""
@@ -38,7 +38,7 @@ supabase_service_role_key: str = ""
 
 Estos campos ya no se usan después de la migración a SQLAlchemy.
 
-**Solución:** 
+**Solución:**
 - ❌ **ELIMINAR** estas líneas de configuración
 - O mantenerlas con comentario `# DEPRECATED: No longer used after SQLAlchemy migration`
 
@@ -73,7 +73,7 @@ grep -r "mock_supabase" tests/conftest.py
 ```
 No se encontraron imports activos.
 
-**Solución:** 
+**Solución:**
 - ❌ **ELIMINAR** el archivo `tests/mocks/mock_supabase.py`
 - O documentar por qué se mantiene
 
@@ -84,7 +84,7 @@ No se encontraron imports activos.
 ### 4. Inconsistencia async/sync en `handler.py`
 **Ubicación:** `app/api/v1/features/authentication/handler.py`
 
-**Problema:** 
+**Problema:**
 - `login()`, `register()`, `logout()`, `get_profile()` son **síncronos** ✅
 - `create_api_key()`, `list_api_keys()`, `delete_api_key()` son **async** ⚠️
 
@@ -95,7 +95,7 @@ Pero `create_api_key()` en `service.py` es async pero solo usa un diccionario en
 - `service.list_api_keys()` es async pero no necesita serlo
 - `service.delete_api_key()` es async pero no necesita serlo
 
-**Solución:** 
+**Solución:**
 - Opción 1: Hacer todos los métodos de API keys síncronos (más simple, consistente)
 - Opción 2: Mantener async si planean mover API keys a DB pronto
 
@@ -117,7 +117,7 @@ _api_keys: dict = {}
 
 **Análisis:** Este TODO está bien documentado, pero debería ser más específico o crear un issue.
 
-**Solución:** 
+**Solución:**
 - Mantener el TODO (está bien documentado)
 - O crear un issue en GitHub y referenciarlo
 
@@ -137,7 +137,7 @@ _api_keys: dict = {}
 - No valida si el API key existe realmente
 - Retorna un usuario mock sin verificar
 
-**Solución:** 
+**Solución:**
 - Implementar validación real O
 - Documentar claramente que esto es temporal y no seguro para producción
 
@@ -228,7 +228,7 @@ except Exception as e:
 
 **Análisis:** Capturar `Exception` es muy amplio. Debería ser más específico.
 
-**Solución:** 
+**Solución:**
 - Mantener así por ahora (está bien para logging)
 - O ser más específico: `except (ValueError, AttributeError) as e:`
 
@@ -280,7 +280,7 @@ _api_keys: dict = {}
 
 **Análisis:** Como class variable, se comparte entre todas las instancias. Esto puede ser intencional (para persistir entre requests) pero es confuso.
 
-**Solución:** 
+**Solución:**
 - Si es intencional (persistir entre requests), documentar claramente
 - Si no, mover a `__init__` como instance variable
 
@@ -295,7 +295,7 @@ _api_keys: dict = {}
 
 **Análisis:** FastAPI/Pydantic valida en el DTO, pero sería bueno tener validación adicional.
 
-**Solución:** 
+**Solución:**
 - Opción 1: Confiar en validación de Pydantic (actual)
 - Opción 2: Agregar validación adicional con regex o librería
 
@@ -310,7 +310,7 @@ _api_keys: dict = {}
 
 **Análisis:** Esto es correcto para seguridad (verificar revocación de tokens), pero podría optimizarse con cache.
 
-**Solución:** 
+**Solución:**
 - Mantener así (seguridad > performance para ahora)
 - O agregar cache con TTL corto si es necesario después
 
@@ -360,4 +360,3 @@ _api_keys: dict = {}
 **Después de corregir los problemas críticos:** ✅ **APROBAR**
 
 El código está bien estructurado y la migración es correcta, solo necesita limpieza de código legacy.
-

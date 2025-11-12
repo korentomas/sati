@@ -1,7 +1,7 @@
 from typing import Any, Dict, List
-from sqlalchemy.orm import Session
 
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
 
 from app.api.v1.features.authentication.dto import (
     ApiKeyRequest,
@@ -26,7 +26,7 @@ def login(
 ) -> TokenResponse:
     """
     Login with email and password.
-    
+
     Returns a JWT token for API access.
     """
     handler = AuthHandler(db)
@@ -43,14 +43,19 @@ def register(
 ) -> TokenResponse:
     """
     Register a new user with password hashing.
-    
+
     Returns a JWT token for API access.
     """
     handler = AuthHandler(db)
-    token_response = handler.register(request)
-    if not token_response:
-        raise HTTPException(status_code=400, detail="Registration failed")
-    return token_response
+    try:
+        token_response = handler.register(request)
+        if not token_response:
+            raise HTTPException(status_code=400, detail="Registration failed")
+        return token_response
+    except ValueError as e:
+        if "already exists" in str(e).lower():
+            raise HTTPException(status_code=400, detail="User already exists")
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.post("/logout")
@@ -72,7 +77,7 @@ def get_profile(
 ) -> UserProfile:
     """
     Get current user profile.
-    
+
     Requires a valid JWT token.
     """
     handler = AuthHandler(db)

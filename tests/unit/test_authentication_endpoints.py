@@ -25,25 +25,23 @@ class TestAuthenticationEndpoints:
     def test_register_duplicate_email(self, client: TestClient) -> None:
         """Test registration with duplicate email."""
         register_data = {"email": "duplicate@example.com", "password": "password123"}
-        
+
         # First registration
         response1 = client.post("/api/v1/auth/register", json=register_data)
         assert response1.status_code == 200
-        
+
         # Second registration with same email
         response2 = client.post("/api/v1/auth/register", json=register_data)
         assert response2.status_code == 400
         assert "detail" in response2.json()
 
-    def test_login_success(
-        self, client: TestClient
-    ) -> None:
+    def test_login_success(self, client: TestClient) -> None:
         """Test successful login after registration."""
         # First register
         register_data = {"email": "loginuser@example.com", "password": "password123"}
         register_response = client.post("/api/v1/auth/register", json=register_data)
         assert register_response.status_code == 200
-        
+
         # Then login
         login_data = {"email": "loginuser@example.com", "password": "password123"}
         response = client.post("/api/v1/auth/login", json=login_data)
@@ -62,9 +60,12 @@ class TestAuthenticationEndpoints:
     def test_login_invalid_credentials(self, client: TestClient) -> None:
         """Test login with invalid credentials."""
         # Register first
-        register_data = {"email": "testuser@example.com", "password": "correct_password"}
+        register_data = {
+            "email": "testuser@example.com",
+            "password": "correct_password",
+        }
         client.post("/api/v1/auth/register", json=register_data)
-        
+
         # Try wrong password
         invalid_data = {"email": "testuser@example.com", "password": "wrong_password"}
         response = client.post("/api/v1/auth/login", json=invalid_data)
@@ -116,7 +117,7 @@ class TestAuthenticationEndpoints:
         register_data = {"email": "profileuser@example.com", "password": "password123"}
         register_response = client.post("/api/v1/auth/register", json=register_data)
         assert register_response.status_code == 200
-        
+
         access_token = register_response.json()["access_token"]
         headers = auth_headers(access_token)
 

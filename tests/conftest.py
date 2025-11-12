@@ -3,17 +3,18 @@ from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy import create_engine, text
+from sqlalchemy.orm import Session, sessionmaker
 
-from app.main import app
 from app.api.v1.shared.db.base import Base
 from app.api.v1.shared.db.deps import get_db_session
-
+from app.main import app
 
 # Test database (SQLite in memory for fast tests)
 TEST_DATABASE_URL = "sqlite:///:memory:"
-test_engine = create_engine(TEST_DATABASE_URL, connect_args={"check_same_thread": False})
+test_engine = create_engine(
+    TEST_DATABASE_URL, connect_args={"check_same_thread": False}
+)
 TestSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_engine)
 
 
@@ -22,7 +23,7 @@ def db_session() -> Generator[Session, None, None]:
     """Create a test database session."""
     # Create all tables
     Base.metadata.create_all(bind=test_engine)
-    
+
     # Create session
     session = TestSessionLocal()
     try:
@@ -37,26 +38,30 @@ def db_session() -> Generator[Session, None, None]:
 @pytest.fixture
 def client(db_session: Session) -> Generator[TestClient, None, None]:
     """Create a test client for the FastAPI application with test database."""
-    # Ensure tables are created in the same engine
-    Base.metadata.create_all(bind=test_engine)
-    
     # Override get_db_session dependency to use test database
-    # Create a new session from the same engine to ensure tables exist
+    # Use a shared session for all requests in the same test to maintain state
+    shared_session = TestSessionLocal()
+    # Create tables directly in this session's connection
+    Base.metadata.create_all(bind=shared_session.bind)
+    # Force connection to be established
+    shared_session.execute(text("SELECT 1"))
+
     def override_get_db():
-        session = TestSessionLocal()
         try:
-            # Ensure tables exist
-            Base.metadata.create_all(bind=test_engine)
-            yield session
-        finally:
-            session.rollback()
-            session.close()
-    
+            yield shared_session
+            # Commit after each request to persist changes
+            shared_session.commit()
+        except Exception:
+            shared_session.rollback()
+            raise
+
     app.dependency_overrides[get_db_session] = override_get_db
-    
+
     yield TestClient(app)
-    
+
     # Clean up
+    shared_session.rollback()
+    shared_session.close()
     app.dependency_overrides.clear()
 
 

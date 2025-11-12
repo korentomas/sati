@@ -1,9 +1,9 @@
 from typing import Any, Dict, Optional
 from uuid import UUID
-from sqlalchemy.orm import Session
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from sqlalchemy.orm import Session
 
 from app.api.v1.shared.auth.jwt import verify_token
 from app.api.v1.shared.db.deps import get_db_session
@@ -19,7 +19,7 @@ def get_current_user(
 ) -> Dict[str, Any]:
     """
     Dependency to get current authenticated user from JWT token.
-    
+
     Verifies the token and checks that user exists in database.
     """
     credentials_exception = HTTPException(
@@ -46,10 +46,7 @@ def get_current_user(
         raise credentials_exception
 
     # Verify user exists in DB (token revocation check)
-    user = db.query(User).filter(
-        User.id == user_uuid,
-        User.is_active == True
-    ).first()
+    user = db.query(User).filter(User.id == user_uuid, User.is_active == True).first()
 
     if not user:
         raise credentials_exception
@@ -68,7 +65,7 @@ def get_api_key_user(
 ) -> Dict[str, Any]:
     """
     Dependency for API key based authentication.
-    
+
     API keys are still handled locally, separate from user auth.
     """
     token = credentials.credentials
@@ -107,7 +104,11 @@ def get_optional_user(
             if user_id:
                 try:
                     user_uuid = UUID(user_id)
-                    user = db.query(User).filter(User.id == user_uuid, User.is_active == True).first()
+                    user = (
+                        db.query(User)
+                        .filter(User.id == user_uuid, User.is_active == True)
+                        .first()
+                    )
                     if user:
                         return {
                             "sub": str(user.id),

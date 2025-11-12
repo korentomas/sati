@@ -3,6 +3,7 @@ import uuid
 from datetime import datetime, timedelta
 from typing import List, Optional
 from uuid import UUID
+
 from sqlalchemy.orm import Session
 
 from app.api.v1.features.authentication.dto import (
@@ -12,7 +13,11 @@ from app.api.v1.features.authentication.dto import (
     TokenResponse,
     UserProfile,
 )
-from app.api.v1.shared.auth.jwt import create_access_token, verify_password, get_password_hash
+from app.api.v1.shared.auth.jwt import (
+    create_access_token,
+    get_password_hash,
+    verify_password,
+)
 from app.api.v1.shared.db.models import User
 from app.core.config import settings
 
@@ -32,10 +37,10 @@ class AuthService:
         existing_user = self.db.query(User).filter(User.email == email).first()
         if existing_user:
             raise ValueError("User already exists")
-        
+
         # Hash password
         password_hash = get_password_hash(password)
-        
+
         # Create user
         user = User(email=email, password_hash=password_hash)
         self.db.add(user)
@@ -46,18 +51,20 @@ class AuthService:
     def authenticate_user(self, email: str, password: str) -> Optional[User]:
         """Authenticate user with email and password."""
         # Find user
-        user = self.db.query(User).filter(
-            User.email == email,
-            User.is_active == True
-        ).first()
-        
+        user = (
+            self.db.query(User)
+            .filter(User.email == email, User.is_active == True)
+            .first()
+        )
+
         if not user:
             return None
-        
+
         # Verify password
-        if not verify_password(password, user.password_hash):
+        password_hash_str: str = str(user.password_hash)
+        if not verify_password(password, password_hash_str):
             return None
-        
+
         return user
 
     async def create_api_key(

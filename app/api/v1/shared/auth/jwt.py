@@ -32,11 +32,11 @@ def verify_token(token: str) -> Optional[Dict[str, Any]]:
         payload: Dict[str, Any] = jwt.decode(
             token, settings.secret_key, algorithms=[settings.algorithm]
         )
-        
+
         # Verify required fields
         if "sub" not in payload:
             return None
-        
+
         return payload
     except JWTError:
         return None
@@ -45,21 +45,28 @@ def verify_token(token: str) -> Optional[Dict[str, Any]]:
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify a password against its hash."""
     # Convert string to bytes if needed
-    if isinstance(plain_password, str):
-        plain_password = plain_password.encode('utf-8')
-    if isinstance(hashed_password, str):
-        hashed_password = hashed_password.encode('utf-8')
-    
-    return bcrypt.checkpw(plain_password, hashed_password)
+    plain_bytes: bytes = (
+        plain_password.encode("utf-8")
+        if isinstance(plain_password, str)
+        else plain_password
+    )
+    hash_bytes: bytes = (
+        hashed_password.encode("utf-8")
+        if isinstance(hashed_password, str)
+        else hashed_password
+    )
+
+    return bcrypt.checkpw(plain_bytes, hash_bytes)
 
 
 def get_password_hash(password: str) -> str:
     """Generate password hash."""
-    # Convert string to bytes if needed
-    if isinstance(password, str):
-        password = password.encode('utf-8')
-    
+    # Convert string to bytes
+    password_bytes: bytes = (
+        password.encode("utf-8") if isinstance(password, str) else password
+    )
+
     # Generate salt and hash
     salt = bcrypt.gensalt()
-    hashed = bcrypt.hashpw(password, salt)
-    return hashed.decode('utf-8')
+    hashed = bcrypt.hashpw(password_bytes, salt)
+    return hashed.decode("utf-8")

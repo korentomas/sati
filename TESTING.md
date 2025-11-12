@@ -126,7 +126,7 @@ pytest --cov=app --cov-report=html
 def test_register_success(self, client: TestClient):
     register_data = {"email": "newuser@example.com", "password": "password123"}
     response = client.post("/api/v1/auth/register", json=register_data)
-    
+
     assert response.status_code == 200
     assert "access_token" in response.json()
 ```
@@ -137,7 +137,7 @@ def test_register_success(self, client: TestClient):
 def test_register_user_success(self, db_session: Session):
     service = AuthService(db_session)
     user = service.register_user("test@example.com", "password123")
-    
+
     assert user.email == "test@example.com"
     assert user.password_hash != "password123"  # Debe estar hasheado
 ```
@@ -170,4 +170,3 @@ pip install pytest pytest-asyncio pytest-cov
 - [ ] Agregar tests de performance
 - [ ] Configurar GitHub Actions para CI/CD
 - [ ] Agregar tests de carga con múltiples usuarios
-

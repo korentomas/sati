@@ -3,7 +3,7 @@ uvicorn[standard]==0.35.0
 pydantic[mypy]==2.11.7
 pydantic-settings==2.10.1
 sqlmodel==0.0.14
-sqlalchemy==2.0.23
+sqlalchemy==2.0.36
 psycopg2-binary==2.9.9
 asyncpg==0.30.0
 redis==5.0.1

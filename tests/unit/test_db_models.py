@@ -1,6 +1,8 @@
 """Unit tests for database models."""
+
 import pytest
 from sqlalchemy.orm import Session
+
 from app.api.v1.shared.db.models import User
 
 
@@ -9,14 +11,11 @@ class TestUserModel:
 
     def test_create_user(self, db_session: Session):
         """Test creating a user in database."""
-        user = User(
-            email="test@example.com",
-            password_hash="hashed_password_123"
-        )
+        user = User(email="test@example.com", password_hash="hashed_password_123")
         db_session.add(user)
         db_session.commit()
         db_session.refresh(user)
-        
+
         assert user.id is not None
         assert user.email == "test@example.com"
         assert user.password_hash == "hashed_password_123"
@@ -29,10 +28,10 @@ class TestUserModel:
         user1 = User(email="test@example.com", password_hash="hash1")
         db_session.add(user1)
         db_session.commit()
-        
+
         user2 = User(email="test@example.com", password_hash="hash2")
         db_session.add(user2)
-        
+
         with pytest.raises(Exception):  # IntegrityError or similar
             db_session.commit()
 
@@ -42,7 +41,7 @@ class TestUserModel:
         db_session.add(user)
         db_session.commit()
         db_session.refresh(user)
-        
+
         assert user.is_active is True
 
     def test_user_timestamps(self, db_session: Session):
@@ -51,10 +50,9 @@ class TestUserModel:
         db_session.add(user)
         db_session.commit()
         db_session.refresh(user)
-        
+
         assert user.created_at is not None
         assert user.updated_at is not None
         # Allow small difference due to microsecond precision
         time_diff = abs((user.updated_at - user.created_at).total_seconds())
         assert time_diff < 1.0  # Less than 1 second difference
-
