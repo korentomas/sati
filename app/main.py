@@ -7,6 +7,7 @@ from app.api.v1.features.authentication.router import router as auth_router
 from app.api.v1.features.imagery.search.router import router as imagery_router
 from app.api.v1.features.imagery.tiles.routes import router as tiles_router
 from app.api.v1.pages.health.router import router as health_router
+from app.api.v1.features.projects.router import router as projects_router
 from app.core.config import settings
 from app.core.logging import setup_logging
 
@@ -56,6 +57,9 @@ app.include_router(
 )
 app.include_router(
     tiles_router, prefix=f"{settings.api_v1_prefix}/imagery", tags=["tiles"]
+)
+app.include_router(
+    projects_router, prefix=f"{settings.api_v1_prefix}/projects", tags=["Projects"]
 )
 
 
