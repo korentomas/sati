@@ -6,14 +6,20 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session, sessionmaker
 
+# Test database (SQLite in memory for fast tests)
+# Use StaticPool to ensure all operations use the same connection
+from sqlalchemy.pool import StaticPool
+
 from app.api.v1.shared.db.base import Base
 from app.api.v1.shared.db.deps import get_db_session
 from app.main import app
 
-# Test database (SQLite in memory for fast tests)
 TEST_DATABASE_URL = "sqlite:///:memory:"
 test_engine = create_engine(
-    TEST_DATABASE_URL, connect_args={"check_same_thread": False}
+    TEST_DATABASE_URL,
+    connect_args={"check_same_thread": False},
+    poolclass=StaticPool,
+    pool_pre_ping=False,
 )
 TestSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_engine)
 
@@ -41,12 +47,11 @@ def client(db_session: Session) -> Generator[TestClient, None, None]:
     # Override get_db_session dependency to use test database
     # Use a shared session for all requests in the same test to maintain state
     shared_session = TestSessionLocal()
-    # Create tables directly in this session's connection
-    Base.metadata.create_all(bind=shared_session.bind)
-    # Force connection to be established
-    shared_session.execute(text("SELECT 1"))
+    # Create tables in the connection used by this session
+    # With StaticPool, all operations use the same connection
+    Base.metadata.create_all(bind=test_engine)
 
-    def override_get_db():
+    def override_get_db() -> Generator[Session, None, None]:
         try:
             yield shared_session
             # Commit after each request to persist changes
