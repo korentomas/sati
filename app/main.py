@@ -22,6 +22,19 @@ app = FastAPI(
     redoc_url=f"{settings.api_v1_prefix}/redoc",
 )
 
+
+@app.on_event("startup")
+def startup() -> None:
+    """Initialize database on startup."""
+    try:
+        from app.api.v1.shared.db.init_db import init_db
+
+        init_db()
+        logger.info("Database initialized successfully")
+    except Exception as e:
+        logger.error(f"Failed to initialize database: {e}")
+
+
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,

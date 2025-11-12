@@ -1,12 +1,10 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Optional
 
+import bcrypt
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 
 from app.core.config import settings
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 def create_access_token(
@@ -15,9 +13,9 @@ def create_access_token(
     """Create a new JWT access token."""
     to_encode = data.copy()
     if expires_delta:
-        expire = datetime.utcnow() + expires_delta
+        expire = datetime.now(timezone.utc) + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(
+        expire = datetime.now(timezone.utc) + timedelta(
             minutes=settings.access_token_expire_minutes
         )
 
@@ -29,11 +27,16 @@ def create_access_token(
 
 
 def verify_token(token: str) -> Optional[Dict[str, Any]]:
-    """Verify and decode a JWT token."""
+    """Verify and decode a JWT token with better error handling."""
     try:
         payload: Dict[str, Any] = jwt.decode(
             token, settings.secret_key, algorithms=[settings.algorithm]
         )
+
+        # Verify required fields
+        if "sub" not in payload:
+            return None
+
         return payload
     except JWTError:
         return None
@@ -41,11 +44,29 @@ def verify_token(token: str) -> Optional[Dict[str, Any]]:
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify a password against its hash."""
-    result: bool = pwd_context.verify(plain_password, hashed_password)
-    return result
+    # Convert string to bytes if needed
+    plain_bytes: bytes = (
+        plain_password.encode("utf-8")
+        if isinstance(plain_password, str)
+        else plain_password
+    )
+    hash_bytes: bytes = (
+        hashed_password.encode("utf-8")
+        if isinstance(hashed_password, str)
+        else hashed_password
+    )
+
+    return bcrypt.checkpw(plain_bytes, hash_bytes)
 
 
 def get_password_hash(password: str) -> str:
     """Generate password hash."""
-    result: str = pwd_context.hash(password)
-    return result
+    # Convert string to bytes
+    password_bytes: bytes = (
+        password.encode("utf-8") if isinstance(password, str) else password
+    )
+
+    # Generate salt and hash
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(password_bytes, salt)
+    return hashed.decode("utf-8")
