@@ -3,7 +3,6 @@
 from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional
-from uuid import UUID
 
 from pydantic import BaseModel, Field, HttpUrl
 
@@ -102,9 +101,7 @@ class JobStatusResponse(BaseModel):
     created_at: Optional[datetime] = Field(
         default=None, description="When job was created"
     )
-    updated_at: Optional[datetime] = Field(
-        default=None, description="Last update time"
-    )
+    updated_at: Optional[datetime] = Field(default=None, description="Last update time")
     completed_at: Optional[datetime] = Field(
         default=None, description="Completion time"
     )

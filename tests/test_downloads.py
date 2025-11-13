@@ -1,6 +1,5 @@
 """Tests for parallel download functionality with Arq."""
 
-import asyncio
 import json
 from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -11,8 +10,6 @@ from arq import ArqRedis
 from fastapi import status
 from httpx import AsyncClient
 
-from app.api.v1.features.imagery.downloads.schemas import JobStatus
-from app.main import app
 from app.workers.tasks import (
     calculate_file_hash,
     download_imagery,
@@ -31,7 +28,9 @@ class TestDownloadEndpoints:
         self, async_client: AsyncClient, authenticated_headers: dict
     ):
         """Test successful download job queuing."""
-        with patch("app.api.v1.features.imagery.downloads.router.get_redis_pool") as mock_pool:
+        with patch(
+            "app.api.v1.features.imagery.downloads.router.get_redis_pool"
+        ) as mock_pool:
             mock_redis = AsyncMock(spec=ArqRedis)
             mock_redis.enqueue_job.return_value = MagicMock()
             mock_pool.return_value = mock_redis
@@ -60,7 +59,9 @@ class TestDownloadEndpoints:
         """Test getting job status."""
         job_id = str(uuid4())
 
-        with patch("app.api.v1.features.imagery.downloads.router.get_redis_pool") as mock_pool:
+        with patch(
+            "app.api.v1.features.imagery.downloads.router.get_redis_pool"
+        ) as mock_pool:
             mock_redis = AsyncMock(spec=ArqRedis)
             mock_redis.get.return_value = json.dumps(
                 {
@@ -90,7 +91,9 @@ class TestDownloadEndpoints:
         """Test cancelling a job."""
         job_id = str(uuid4())
 
-        with patch("app.api.v1.features.imagery.downloads.router.get_redis_pool") as mock_pool:
+        with patch(
+            "app.api.v1.features.imagery.downloads.router.get_redis_pool"
+        ) as mock_pool:
             mock_redis = AsyncMock(spec=ArqRedis)
             mock_redis.get.return_value = json.dumps({"status": "pending"})
             mock_redis.abort_job.return_value = True
@@ -111,7 +114,9 @@ class TestDownloadEndpoints:
         self, async_client: AsyncClient, authenticated_headers: dict
     ):
         """Test dataset export."""
-        with patch("app.api.v1.features.imagery.downloads.router.get_redis_pool") as mock_pool:
+        with patch(
+            "app.api.v1.features.imagery.downloads.router.get_redis_pool"
+        ) as mock_pool:
             mock_redis = AsyncMock(spec=ArqRedis)
             mock_redis.enqueue_job.return_value = MagicMock()
             mock_pool.return_value = mock_redis
@@ -172,11 +177,15 @@ class TestDownloadTasks:
             # First download succeeds
             mock_response_success = AsyncMock()
             mock_response_success.raise_for_status = MagicMock()
-            mock_response_success.aiter_bytes = AsyncMock(return_value=iter([b"test_data"]))
+            mock_response_success.aiter_bytes = AsyncMock(
+                return_value=iter([b"test_data"])
+            )
 
             # Second download fails
             mock_response_fail = AsyncMock()
-            mock_response_fail.raise_for_status.side_effect = Exception("Download failed")
+            mock_response_fail.raise_for_status.side_effect = Exception(
+                "Download failed"
+            )
 
             mock_client.get.side_effect = [mock_response_success, mock_response_fail]
             mock_client_class.return_value.__aenter__.return_value = mock_client
@@ -202,9 +211,7 @@ class TestDownloadTasks:
             test_files.append(str(file_path))
 
         with patch("app.workers.tasks.DOWNLOAD_DIR", tmp_path):
-            result = await export_dataset(
-                ctx, job_id, test_files, "zip", user_id
-            )
+            result = await export_dataset(ctx, job_id, test_files, "zip", user_id)
 
         assert result["status"] == "completed"
         assert result["export_format"] == "zip"

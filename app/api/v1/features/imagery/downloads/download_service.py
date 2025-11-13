@@ -51,8 +51,6 @@ class DirectDownloadService:
             filename = safe_path.name
 
         # Sanitize filename to prevent header injection
-        import re
-
         filename = secure_filename(filename)
 
         # Return file for download
@@ -169,7 +167,7 @@ class DirectDownloadService:
                     if len(parts) == 1 and parts[0]:
                         return True
             return False
-        
+
         if not is_allowed_domain(domain_ascii):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN, detail="URL domain not allowed"
@@ -178,7 +176,7 @@ class DirectDownloadService:
         # Prevent SSRF: Check ALL resolved IPs for internal/private/other restricted addresses
         try:
             import asyncio
-            import functools
+
             # Resolve both A and AAAA records, check all.
             hostname = domain
             # getaddrinfo can return multiple results (A, AAAA etc)

@@ -3,7 +3,6 @@
 import asyncio
 import hashlib
 import json
-import os
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -13,8 +12,6 @@ import aiofiles
 import httpx
 from arq import ArqRedis
 from loguru import logger
-
-from app.core.config import settings
 
 # Download directory for temporary storage
 DOWNLOAD_DIR = Path("downloads")
@@ -45,7 +42,9 @@ async def download_imagery(
     errors = []
 
     # Update job status to in_progress
-    await update_job_status(redis, job_id, "in_progress", {"total": len(urls), "completed": 0})
+    await update_job_status(
+        redis, job_id, "in_progress", {"total": len(urls), "completed": 0}
+    )
 
     # Create user-specific download directory
     user_dir = DOWNLOAD_DIR / user_id / job_id
@@ -65,7 +64,9 @@ async def download_imagery(
                     response.raise_for_status()
 
                     # Generate filename from URL or use timestamp
-                    filename = url.split("/")[-1] or f"image_{index}_{uuid4().hex[:8]}.tif"
+                    filename = (
+                        url.split("/")[-1] or f"image_{index}_{uuid4().hex[:8]}.tif"
+                    )
                     filepath = user_dir / filename
 
                     # Stream download to file
@@ -330,8 +331,8 @@ async def create_batch_download(
                             "stage": "creating_batch",
                             "progress": progress,
                             "files_processed": len(included_files),
-                            "total_files": len(file_ids)
-                        }
+                            "total_files": len(file_ids),
+                        },
                     )
                 else:
                     missing_files.append(str(file_id))
@@ -343,7 +344,9 @@ async def create_batch_download(
             message = f"Batch download ready with {len(included_files)} files"
         elif included_files:
             status = "partial"
-            message = f"Batch download ready with {len(included_files)}/{len(file_ids)} files"
+            message = (
+                f"Batch download ready with {len(included_files)}/{len(file_ids)} files"
+            )
         else:
             status = "failed"
             message = "No files found for batch download"
@@ -391,10 +394,14 @@ async def cleanup_old_downloads(ctx: Dict[str, Any]) -> Dict[str, Any]:
             for job_dir in user_dir.iterdir():
                 if job_dir.is_dir():
                     # Check modification time
-                    mtime = datetime.fromtimestamp(job_dir.stat().st_mtime, tz=timezone.utc)
+                    mtime = datetime.fromtimestamp(
+                        job_dir.stat().st_mtime, tz=timezone.utc
+                    )
                     if mtime < cutoff:
                         # Calculate size before deletion
-                        size = sum(f.stat().st_size for f in job_dir.rglob("*") if f.is_file())
+                        size = sum(
+                            f.stat().st_size for f in job_dir.rglob("*") if f.is_file()
+                        )
                         freed_space += size
                         deleted_count += 1
 
