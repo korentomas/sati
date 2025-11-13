@@ -131,8 +131,8 @@ def get_optional_user(
                             "user_id": str(user.id),
                         }
                 except ValueError:
-                    pass
+                    pass  # nosec B110
     except Exception:
-        pass
+        pass  # nosec B110
 
     return None

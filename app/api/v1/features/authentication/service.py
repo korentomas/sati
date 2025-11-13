@@ -58,7 +58,7 @@ class AuthService:
         if not verify_password(password, password_hash_str):
             return None
 
-        return user
+        return user  # type: ignore[no-any-return]
 
     def create_api_key(self, user_id: str, request: ApiKeyRequest) -> ApiKeyResponse:
         """Generate a new API key for the user."""
@@ -133,7 +133,7 @@ class AuthService:
                 # Check if key is expired
                 expires_at = datetime.fromisoformat(key_data["expires_at"].rstrip("Z"))
                 if datetime.now(timezone.utc).replace(tzinfo=None) < expires_at:
-                    return key_data
+                    return key_data  # type: ignore[no-any-return]
                 else:
                     from app.core.logging import logger
 

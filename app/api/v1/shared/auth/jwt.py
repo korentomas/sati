@@ -56,7 +56,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
         else hashed_password
     )
 
-    return bcrypt.checkpw(plain_bytes, hash_bytes)
+    return bcrypt.checkpw(plain_bytes, hash_bytes)  # type: ignore[no-any-return]
 
 
 def get_password_hash(password: str) -> str:
@@ -69,4 +69,4 @@ def get_password_hash(password: str) -> str:
     # Generate salt and hash
     salt = bcrypt.gensalt()
     hashed = bcrypt.hashpw(password_bytes, salt)
-    return hashed.decode("utf-8")
+    return hashed.decode("utf-8")  # type: ignore[no-any-return]

@@ -1,9 +1,8 @@
 from typing import Callable, Dict, Generator
-from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
 # Test database (SQLite in memory for fast tests)
