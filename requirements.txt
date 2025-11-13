@@ -25,7 +25,6 @@ numpy==2.3.2
 Pillow==11.0.0
 mypy==1.11.2
 pre-commit==4.0.1
-supabase==2.10.0
 arq==0.26.3
 aiofiles==25.1.0
 types-aiofiles==25.1.0.20251011
