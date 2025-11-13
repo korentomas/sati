@@ -33,12 +33,10 @@ class DirectDownloadService:
         # Define allowed download directory
         allowed_base = Path("/app/downloads").resolve()
 
-        import os
-        # Ensure safe_path is within allowed_base (prevent path traversal and symlink bypass)
-        allowed_base_str = str(allowed_base)
-        safe_path_str = str(safe_path)
-        # Make sure path separator follows the allowed base (avoids /app/downloads_evil cases)
-        if not (safe_path_str == allowed_base_str or safe_path_str.startswith(allowed_base_str + os.sep)):
+        # Ensure safe_path is within allowed_base using Path.relative_to
+        try:
+            safe_path.relative_to(allowed_base)
+        except ValueError:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN, detail="Access denied"
             )
@@ -80,8 +78,10 @@ class DirectDownloadService:
         # Define allowed download directory
         allowed_base = Path("/app/downloads").resolve()
 
-        # Verify the resolved path is within allowed directory
-        if not str(safe_path).startswith(str(allowed_base)):
+        # Verify the resolved path is within allowed directory using Path.relative_to
+        try:
+            safe_path.relative_to(allowed_base)
+        except ValueError:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN, detail="Access denied"
             )
@@ -128,6 +128,7 @@ class DirectDownloadService:
             )
 
         # Define allowed domains for satellite imagery
+        # Define allowed domains for satellite imagery - only permit these root domains and direct subdomains
         ALLOWED_DOMAINS = [
             "sentinel-hub.com",
             "scihub.copernicus.eu",
@@ -137,13 +138,15 @@ class DirectDownloadService:
             "amazonaws.com",  # For S3 buckets
         ]
 
-        # Check if domain is in allowed list
-        domain = parsed.netloc.lower()
-        if not any(allowed in domain for allowed in ALLOWED_DOMAINS):
+        # Check if netloc is in allowed list (use suffix match rather than substring)
+        domain = parsed.hostname.lower() if parsed.hostname else ""
+        if not any(
+            domain == allowed or domain.endswith(f".{allowed}")
+            for allowed in ALLOWED_DOMAINS
+        ):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN, detail="URL domain not allowed"
             )
-
         # Prevent SSRF to internal IPs
         try:
             # Resolve hostname to IP
