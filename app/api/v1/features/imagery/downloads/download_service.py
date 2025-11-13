@@ -33,15 +33,15 @@ class DirectDownloadService:
         # Define allowed download directory
         allowed_base = Path("/app/downloads").resolve()
 
-        # Verify the resolved path is within allowed directory
-        try:
-            # Raises ValueError if safe_path is not inside allowed_base
-            safe_path.relative_to(allowed_base)
-        except ValueError:
+        import os
+        # Ensure safe_path is within allowed_base (prevent path traversal and symlink bypass)
+        allowed_base_str = str(allowed_base)
+        safe_path_str = str(safe_path)
+        # Make sure path separator follows the allowed base (avoids /app/downloads_evil cases)
+        if not (safe_path_str == allowed_base_str or safe_path_str.startswith(allowed_base_str + os.sep)):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN, detail="Access denied"
             )
-
         # Validate file exists
         if not safe_path.exists():
             raise HTTPException(
