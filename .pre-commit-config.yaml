@@ -17,7 +17,7 @@ repos:
     rev: v1.11.2
     hooks:
       - id: mypy
-        additional_dependencies: [pydantic, types-requests, types-python-dateutil]
+        additional_dependencies: [pydantic, types-requests, types-python-dateutil, types-aiofiles]
         args: [--ignore-missing-imports, --show-error-codes, --no-implicit-optional]
 
   - repo: https://github.com/pycqa/flake8

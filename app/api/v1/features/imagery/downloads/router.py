@@ -227,7 +227,7 @@ async def get_job_status_endpoint(
             return JobStatusResponse(
                 job_id=job_id,
                 status=mapped_status,
-                created_at=job_info.get("enqueue_time"),
+                created_at=job_info.enqueue_time if job_info else None,
             )
 
         # Parse timestamps

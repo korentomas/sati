@@ -3,7 +3,7 @@
 from pathlib import Path
 from typing import Optional
 
-import aiofiles  # type: ignore[import-untyped]
+import aiofiles
 from fastapi import HTTPException, status
 from fastapi.responses import FileResponse, StreamingResponse
 from werkzeug.utils import secure_filename
