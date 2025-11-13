@@ -138,30 +138,90 @@ class DirectDownloadService:
             "amazonaws.com",  # For S3 buckets
         ]
 
-        # Check if netloc is in allowed list (use suffix match rather than substring)
-        domain = parsed.hostname.lower() if parsed.hostname else ""
-        if not any(
-            domain == allowed or domain.endswith(f".{allowed}")
-            for allowed in ALLOWED_DOMAINS
-        ):
+        # Normalize the domain to ASCII to prevent unicode tricks (punycode).
+        domain = parsed.hostname
+        if not domain:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No hostname found in URL",
+            )
+        # Normalize (encode) using IDNA for punycode attacks.
+        try:
+            domain_ascii = domain.encode("idna").decode("ascii").lower()
+        except Exception:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Failed to normalize hostname",
+            )
+
+        def is_allowed_domain(host: str) -> bool:
+            # Only allow the exact domain, or one-level direct subdomain of allowed.
+            # All in ASCII/punycode.
+            host = host.encode("idna").decode("ascii").lower()
+            for allowed in ALLOWED_DOMAINS:
+                allowed = allowed.encode("idna").decode("ascii").lower()
+                if host == allowed:
+                    return True
+                # Is it a direct subdomain? (e.g., foo.allowed, not a.b.allowed)
+                if host.endswith("." + allowed):
+                    # Ensure it's a direct subdomain only (no a.b.allowed)
+                    parts = host.rsplit("." + allowed, 1)[0].split(".")
+                    if len(parts) == 1 and parts[0]:
+                        return True
+            return False
+        
+        if not is_allowed_domain(domain_ascii):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN, detail="URL domain not allowed"
             )
-        # Prevent SSRF to internal IPs
-        try:
-            # Resolve hostname to IP
-            hostname = parsed.netloc.split(":")[0]
-            ip = socket.gethostbyname(hostname)
-            ip_obj = ipaddress.ip_address(ip)
 
-            # Block private and loopback IPs
-            if ip_obj.is_private or ip_obj.is_loopback or ip_obj.is_reserved:
+        # Prevent SSRF: Check ALL resolved IPs for internal/private/other restricted addresses
+        try:
+            import asyncio
+            import functools
+            # Resolve both A and AAAA records, check all.
+            hostname = domain
+            # getaddrinfo can return multiple results (A, AAAA etc)
+            try:
+                infos = await asyncio.get_event_loop().getaddrinfo(
+                    hostname,
+                    None,
+                    proto=socket.IPPROTO_TCP,
+                )
+            except Exception:
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Access to internal resources not allowed",
+                    detail="Failed to resolve hostname",
                 )
-        except socket.gaierror:
-            pass  # Unable to resolve, let httpx handle it
+
+            bad_ip = False
+            for info in infos:
+                ip = info[-1][0]
+                try:
+                    ip_obj = ipaddress.ip_address(ip)
+                    # Block private, loopback, reserved, link-local, multicast, unspecified
+                    if (
+                        ip_obj.is_private
+                        or ip_obj.is_loopback
+                        or ip_obj.is_reserved
+                        or ip_obj.is_link_local
+                        or ip_obj.is_multicast
+                        or ip_obj.is_unspecified
+                    ):
+                        bad_ip = True
+                except Exception:
+                    bad_ip = True
+            if bad_ip or not infos:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Access to internal or restricted resources not allowed",
+                )
+        except Exception:
+            # Unable to resolve, fail closed
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Failed to resolve or validate remote host",
+            )
 
         async def stream_from_url():
             async with httpx.AsyncClient(
