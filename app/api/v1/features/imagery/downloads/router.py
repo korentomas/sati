@@ -1,13 +1,14 @@
 """Router for download endpoints with Arq job queuing."""
 
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, List, Optional
 from uuid import uuid4
 
 from arq import ArqRedis
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from loguru import logger
 
+from app.api.v1.features.imagery.downloads.download_service import DirectDownloadService
 from app.api.v1.features.imagery.downloads.schemas import (
     BatchDownloadResult,
     CancelJobRequest,
@@ -19,7 +20,6 @@ from app.api.v1.features.imagery.downloads.schemas import (
     JobStatusResponse,
     ProcessingRequest,
 )
-from app.api.v1.features.imagery.downloads.download_service import DirectDownloadService
 from app.api.v1.shared.auth.deps import get_current_user
 from app.workers.config import get_redis_pool
 from app.workers.tasks import get_job_status, update_job_status
@@ -66,7 +66,9 @@ async def queue_download(
                 "user_id": user_id,
                 "total_urls": len(request.urls),
                 "priority": request.priority,
-                "callback_url": str(request.callback_url) if request.callback_url else None,
+                "callback_url": (
+                    str(request.callback_url) if request.callback_url else None
+                ),
             },
         )
 
@@ -264,7 +266,7 @@ async def list_jobs(
         user_id = str(current_user.get("user_id", "anonymous"))
 
         # Get all job keys for the user
-        pattern = f"job:status:*"
+        pattern = "job:status:*"
         cursor = 0
         all_jobs = []
 
@@ -274,7 +276,12 @@ async def list_jobs(
             for key in keys:
                 job_data = await redis_pool.get(key)
                 if job_data:
-                    job_dict = eval(job_data)  # Parse JSON string
+                    import json
+
+                    try:
+                        job_dict = json.loads(job_data)  # Safely parse JSON string
+                    except json.JSONDecodeError:
+                        continue  # Skip malformed data
                     if job_dict.get("user_id") == user_id:
                         job_id = key.decode().split(":")[-1]
                         all_jobs.append(
@@ -282,9 +289,11 @@ async def list_jobs(
                                 job_id=job_id,
                                 status=JobStatus(job_dict.get("status", "unknown")),
                                 progress=job_dict,
-                                updated_at=datetime.fromisoformat(job_dict.get("updated_at"))
-                                if job_dict.get("updated_at")
-                                else None,
+                                updated_at=(
+                                    datetime.fromisoformat(job_dict.get("updated_at"))
+                                    if job_dict.get("updated_at")
+                                    else None
+                                ),
                             )
                         )
 
@@ -438,28 +447,41 @@ async def download_processed_image(
         FileResponse that triggers browser download
     """
     try:
+        import re
+
         user_id = str(current_user.get("user_id", "anonymous"))
 
-        # Construct file path based on user_id and file_id
+        # Sanitize file_id to prevent path traversal
+        # Only allow alphanumeric, dash, underscore, and dot
+        safe_file_id = re.sub(r"[^\w\-.]", "", file_id)
+
+        # Prevent directory traversal patterns
+        if ".." in safe_file_id or "/" in safe_file_id or "\\" in safe_file_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid file ID"
+            )
+
+        # Sanitize user_id as well
+        safe_user_id = re.sub(r"[^\w\-]", "", user_id)
+
+        # Construct file path based on sanitized user_id and file_id
         # This assumes processed images are stored in a user-specific directory
-        file_path = f"/app/downloads/{user_id}/processed/{file_id}"
+        file_path = f"/app/downloads/{safe_user_id}/processed/{safe_file_id}"
 
         # Use the DirectDownloadService to handle the download
         return await DirectDownloadService.download_processed_image(
-            file_path=file_path,
-            filename=f"processed_{file_id}"
+            file_path=file_path, filename=f"processed_{safe_file_id}"
         )
 
     except FileNotFoundError:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Processed image not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Processed image not found"
         )
     except Exception as e:
         logger.error(f"Failed to download processed image: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to download processed image"
+            detail="Failed to download processed image",
         )
 
 
@@ -499,11 +521,7 @@ async def download_processed_batch(
             redis_pool,
             job_id,
             JobStatus.PENDING.value,
-            {
-                "user_id": user_id,
-                "file_count": len(file_ids),
-                "type": "batch_download"
-            }
+            {"user_id": user_id, "file_count": len(file_ids), "type": "batch_download"},
         )
 
         logger.info(f"Queued batch download job {job_id} for {len(file_ids)} files")
@@ -512,14 +530,14 @@ async def download_processed_batch(
             job_id=job_id,
             status=JobStatus.PENDING,
             created_at=datetime.now(timezone.utc),
-            message=f"Batch download queued for {len(file_ids)} file(s)"
+            message=f"Batch download queued for {len(file_ids)} file(s)",
         )
 
     except Exception as e:
         logger.error(f"Failed to queue batch download: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to queue batch download"
+            detail="Failed to queue batch download",
         )
 
 
@@ -547,7 +565,7 @@ async def download_batch_result(
         if status_data.get("status") != JobStatus.COMPLETED.value:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Batch download is not ready yet"
+                detail="Batch download is not ready yet",
             )
 
         # Get the zip file path from job result
@@ -555,15 +573,14 @@ async def download_batch_result(
         if not job_result or "zip_path" not in job_result:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Batch download result not found"
+                detail="Batch download result not found",
             )
 
         zip_path = job_result["zip_path"]
 
         # Stream the zip file to user
         return await DirectDownloadService.download_processed_image(
-            file_path=zip_path,
-            filename=f"batch_download_{job_id}.zip"
+            file_path=zip_path, filename=f"batch_download_{job_id}.zip"
         )
 
     except HTTPException:
@@ -572,7 +589,7 @@ async def download_batch_result(
         logger.error(f"Failed to download batch result: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to download batch result"
+            detail="Failed to download batch result",
         )
 
 
@@ -594,15 +611,14 @@ async def download_from_url(
     """
     try:
         return await DirectDownloadService.download_from_url(
-            image_url=url,
-            processed=True
+            image_url=url, processed=True
         )
 
     except Exception as e:
         logger.error(f"Failed to download from URL: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to download from URL"
+            detail="Failed to download from URL",
         )
 
 
