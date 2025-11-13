@@ -6,6 +6,7 @@ from typing import Optional
 import aiofiles
 from fastapi import HTTPException, status
 from fastapi.responses import FileResponse, StreamingResponse
+from werkzeug.utils import secure_filename
 
 
 class DirectDownloadService:
@@ -33,7 +34,10 @@ class DirectDownloadService:
         allowed_base = Path("/app/downloads").resolve()
 
         # Verify the resolved path is within allowed directory
-        if not str(safe_path).startswith(str(allowed_base)):
+        try:
+            # Raises ValueError if safe_path is not inside allowed_base
+            safe_path.relative_to(allowed_base)
+        except ValueError:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN, detail="Access denied"
             )
@@ -51,7 +55,7 @@ class DirectDownloadService:
         # Sanitize filename to prevent header injection
         import re
 
-        filename = re.sub(r"[^\w\s.-]", "", filename)
+        filename = secure_filename(filename)
 
         # Return file for download
         return FileResponse(
