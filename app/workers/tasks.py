@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 from uuid import uuid4
 
-import aiofiles
+import aiofiles  # type: ignore[import-untyped]
 import httpx
 from arq import ArqRedis
 from loguru import logger

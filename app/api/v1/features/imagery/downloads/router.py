@@ -46,7 +46,7 @@ async def queue_download(
         user_id = str(current_user.get("user_id", "anonymous"))
 
         # Enqueue the download job
-        job = await redis_pool.enqueue_job(
+        await redis_pool.enqueue_job(
             "download_imagery",
             job_id=job_id,
             urls=[str(url) for url in request.urls],
@@ -107,7 +107,7 @@ async def queue_processing(
         user_id = str(current_user.get("user_id", "anonymous"))
 
         # Enqueue the processing job
-        job = await redis_pool.enqueue_job(
+        await redis_pool.enqueue_job(
             "process_imagery",
             job_id=job_id,
             filepath=request.filepath,
@@ -153,7 +153,7 @@ async def queue_export(
         user_id = str(current_user.get("user_id", "anonymous"))
 
         # Enqueue the export job
-        job = await redis_pool.enqueue_job(
+        await redis_pool.enqueue_job(
             "export_dataset",
             job_id=job_id,
             file_paths=request.file_paths,
@@ -203,15 +203,19 @@ async def get_job_status_endpoint(
         status_data = await get_job_status(redis_pool, job_id)
 
         if status_data.get("status") == "not_found":
-            # Try to get job info from Arq
-            job_info = await redis_pool.job_info(job_id)
+            # Try to get job info from Arq using Job instance
+            from arq.jobs import Job
+
+            job = Job(job_id, redis=redis_pool)
+            job_info = await job.info()
             if not job_info:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND, detail="Job not found"
                 )
 
             # Map Arq status to our status
-            arq_status = job_info.get("status", "unknown")
+            job_status = await job.status()
+            arq_status = job_status.name if job_status else "unknown"
             status_map = {
                 "queued": JobStatus.PENDING,
                 "in_progress": JobStatus.IN_PROGRESS,
@@ -347,8 +351,11 @@ async def cancel_job(
                 detail=f"Cannot cancel job with status: {current_status}",
             )
 
-        # Attempt to cancel the job
-        cancelled = await redis_pool.abort_job(job_id)
+        # Attempt to cancel the job using Job instance
+        from arq.jobs import Job
+
+        job = Job(job_id, redis=redis_pool)
+        cancelled = await job.abort()
 
         if cancelled:
             # Update job status
@@ -395,8 +402,14 @@ async def get_job_result(
     Only available for completed jobs.
     """
     try:
-        # Get job result from Arq
-        job_result = await redis_pool.job_result(job_id)
+        # Get job result from Arq using Job instance
+        from arq.jobs import Job
+
+        job = Job(job_id, redis=redis_pool)
+        try:
+            job_result = await job.result(timeout=0.1)  # Quick check, no waiting
+        except (TimeoutError, Exception):
+            job_result = None
 
         if job_result is None:
             # Check job status
@@ -509,7 +522,7 @@ async def download_processed_batch(
         user_id = str(current_user.get("user_id", "anonymous"))
 
         # Enqueue the batch download job
-        job = await redis_pool.enqueue_job(
+        await redis_pool.enqueue_job(
             "create_batch_download",
             job_id=job_id,
             file_ids=file_ids,
@@ -568,8 +581,15 @@ async def download_batch_result(
                 detail="Batch download is not ready yet",
             )
 
-        # Get the zip file path from job result
-        job_result = await redis_pool.job_result(job_id)
+        # Get the zip file path from job result using Job instance
+        from arq.jobs import Job
+
+        job = Job(job_id, redis=redis_pool)
+        try:
+            job_result = await job.result(timeout=0.1)
+        except (TimeoutError, Exception):
+            job_result = None
+
         if not job_result or "zip_path" not in job_result:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,

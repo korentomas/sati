@@ -3,7 +3,7 @@
 from pathlib import Path
 from typing import Optional
 
-import aiofiles
+import aiofiles  # type: ignore[import-untyped]
 from fastapi import HTTPException, status
 from fastapi.responses import FileResponse, StreamingResponse
 from werkzeug.utils import secure_filename
@@ -126,7 +126,7 @@ class DirectDownloadService:
             )
 
         # Define allowed domains for satellite imagery
-        # Define allowed domains for satellite imagery - only permit these root domains and direct subdomains
+        # Only permit these root domains and direct subdomains
         ALLOWED_DOMAINS = [
             "sentinel-hub.com",
             "scihub.copernicus.eu",
@@ -173,7 +173,8 @@ class DirectDownloadService:
                 status_code=status.HTTP_403_FORBIDDEN, detail="URL domain not allowed"
             )
 
-        # Prevent SSRF: Check ALL resolved IPs for internal/private/other restricted addresses
+        # Prevent SSRF: Check ALL resolved IPs for
+        # internal/private/other restricted addresses
         try:
             import asyncio
 
@@ -197,7 +198,8 @@ class DirectDownloadService:
                 ip = info[-1][0]
                 try:
                     ip_obj = ipaddress.ip_address(ip)
-                    # Block private, loopback, reserved, link-local, multicast, unspecified
+                    # Block private, loopback, reserved,
+                    # link-local, multicast, unspecified
                     if (
                         ip_obj.is_private
                         or ip_obj.is_loopback
