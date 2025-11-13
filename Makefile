@@ -123,7 +123,7 @@ lint:
 	@echo "  Flake8 style check..."
 	flake8 . --max-line-length=88 --extend-ignore=E203,W503 --exclude=venv/
 	@echo "  Type checking with mypy..."
-	mypy app/ --ignore-missing-imports --no-strict-optional
+	mypy
 	@echo "All linting checks passed!"
 
 format:
