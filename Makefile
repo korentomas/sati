@@ -1,14 +1,44 @@
-.PHONY: help dev up down build test lint format clean install check-all security-check
+.PHONY: help dev up down build test lint format clean install check-all security-check pre-commit ci-check setup-venv check-venv
+
+# Variables
+VENV_NAME := venv
+PYTHON := python3
+
+# Check if we're in a virtual environment
+check-venv:
+	@if [ -z "$$VIRTUAL_ENV" ] && [ ! -f "/.dockerenv" ]; then \
+		echo "⚠️  WARNING: Not running in a virtual environment!"; \
+		echo "   Run 'make setup-venv' to create one, or activate your venv first."; \
+		echo ""; \
+	fi
+
+# Create and activate virtual environment
+setup-venv:
+	@echo "Creating virtual environment..."
+	@$(PYTHON) -m venv $(VENV_NAME)
+	@echo ""
+	@echo "✅ Virtual environment created!"
+	@echo ""
+	@echo "To activate it, run:"
+	@echo "  source $(VENV_NAME)/bin/activate  # On macOS/Linux"
+	@echo "  $(VENV_NAME)\\Scripts\\activate     # On Windows"
+	@echo ""
+	@echo "Then run 'make install' to install dependencies"
 
 # Default target
 help:
 	@echo "Satellite Imagery API - Available Commands:"
 	@echo ""
+	@echo "🚀 Quick Start:"
+	@echo "  setup       - One-command setup: creates venv, installs everything, configures pre-commit"
+	@echo ""
+	@echo "📦 Manual Setup:"
+	@echo "  setup-venv  - Create a new virtual environment"
+	@echo "  install     - Install dependencies and pre-commit (requires activated venv)"
+	@echo ""
 	@echo "Development:"
 	@echo "  dev         - Run development server with auto-reload"
 	@echo "  dev-full    - Start services in Docker, then run dev server locally"
-	@echo "  install     - Install Python dependencies"
-	@echo "  install-dev - Install development dependencies"
 	@echo ""
 	@echo "Docker Services:"
 	@echo "  services-up   - Start only DB and Redis in Docker"
@@ -93,7 +123,7 @@ lint:
 	@echo "  Flake8 style check..."
 	flake8 . --max-line-length=88 --extend-ignore=E203,W503 --exclude=venv/
 	@echo "  Type checking with mypy..."
-	mypy app/ --ignore-missing-imports --no-strict-optional
+	mypy
 	@echo "All linting checks passed!"
 
 format:
@@ -132,15 +162,34 @@ clean-cache:
 	find . -type d -name ".mypy_cache" -exec rm -rf {} + 2>/dev/null || true
 	@echo "Cache cleaned!"
 
-install:
-	@echo "Installing dependencies..."
-	pip install -r requirements.txt
+install: check-venv
+	@echo "Setting up project environment..."
+	@echo ""
+	@echo "📦 Installing project dependencies..."
+	@pip install --upgrade pip
+	@pip install -r requirements.txt
+	@echo ""
+	@echo "🔧 Installing development tools..."
+	@pip install pre-commit flake8 black isort mypy bandit pytest pytest-cov pytest-asyncio pytest-mock
+	@echo ""
+	@echo "🪝 Setting up pre-commit hooks..."
+	@pre-commit install
+	@pre-commit install --install-hooks
+	@echo ""
+	@echo "🧹 Running initial code formatting..."
+	@black . --quiet || true
+	@isort . --quiet || true
+	@echo ""
+	@echo "✅ Installation complete! Your development environment is ready."
+	@echo ""
+	@echo "Quick start commands:"
+	@echo "  make dev        - Start development server"
+	@echo "  make test       - Run tests"
+	@echo "  make pre-commit - Run all checks before committing"
+	@echo ""
 
-install-dev:
-	@echo "Installing development dependencies..."
-	pip install -r requirements.txt
-	pip install flake8 black isort mypy bandit pytest pytest-cov pytest-asyncio
-	@echo "Development dependencies installed!"
+install-dev: install
+	@echo "Development environment already set up via 'make install'"
 
 requirements:
 	@echo "Updating requirements.txt..."
@@ -164,8 +213,36 @@ db-downgrade:
 		echo "Alembic not installed"; \
 	fi
 
+# Quick setup - create venv and install everything
+setup:
+	@echo "🚀 Starting complete project setup..."
+	@echo ""
+	@if [ ! -d "$(VENV_NAME)" ]; then \
+		echo "📁 Creating virtual environment..."; \
+		$(PYTHON) -m venv $(VENV_NAME); \
+		echo "✅ Virtual environment created"; \
+		echo ""; \
+	fi
+	@echo "📦 Installing in virtual environment..."
+	@. $(VENV_NAME)/bin/activate && pip install --upgrade pip
+	@. $(VENV_NAME)/bin/activate && pip install -r requirements.txt
+	@. $(VENV_NAME)/bin/activate && pip install pre-commit flake8 black isort mypy bandit pytest pytest-cov pytest-asyncio pytest-mock
+	@echo ""
+	@echo "🪝 Setting up pre-commit hooks..."
+	@. $(VENV_NAME)/bin/activate && pre-commit install
+	@. $(VENV_NAME)/bin/activate && pre-commit install --install-hooks
+	@echo ""
+	@echo "✅ Setup complete!"
+	@echo ""
+	@echo "To start developing:"
+	@echo "  1. Activate the virtual environment:"
+	@echo "     source $(VENV_NAME)/bin/activate"
+	@echo "  2. Start the development server:"
+	@echo "     make dev"
+	@echo ""
+
 # Quick development workflow
-quick-dev: install-dev format lint test
+quick-dev: install format lint test
 	@echo "Ready for development!"
 
 # Pre-commit hook (run this before committing)

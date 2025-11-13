@@ -30,7 +30,7 @@ class AuthHandler:
         else:
             self.auth_service = None
 
-    def _create_token_data(self, user) -> Dict[str, Any]:
+    def _create_token_data(self, user: Any) -> Dict[str, Any]:
         """Create token data from user object."""
         return {
             "sub": str(user.id),
@@ -59,7 +59,7 @@ class AuthHandler:
 
             return TokenResponse(
                 access_token=access_token,
-                token_type="bearer",
+                token_type="bearer",  # nosec B106
                 expires_in=settings.access_token_expire_minutes * 60,
             )
         except Exception as e:
@@ -84,7 +84,7 @@ class AuthHandler:
 
             return TokenResponse(
                 access_token=access_token,
-                token_type="bearer",
+                token_type="bearer",  # nosec B106
                 expires_in=settings.access_token_expire_minutes * 60,
             )
         except ValueError:

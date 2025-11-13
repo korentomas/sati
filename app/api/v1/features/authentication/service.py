@@ -60,9 +60,7 @@ class AuthService:
 
         return user
 
-    def create_api_key(
-        self, user_id: str, request: ApiKeyRequest
-    ) -> ApiKeyResponse:
+    def create_api_key(self, user_id: str, request: ApiKeyRequest) -> ApiKeyResponse:
         """Generate a new API key for the user."""
         key_id = str(uuid.uuid4())
         api_key = f"sat_{secrets.token_urlsafe(32)}"
@@ -95,7 +93,7 @@ class AuthService:
             return None
         return UserProfile(
             user_id=str(user.id),
-            email=user.email,
+            email=str(user.email),
             created_at=user.created_at.isoformat() if user.created_at else "",
         )
 

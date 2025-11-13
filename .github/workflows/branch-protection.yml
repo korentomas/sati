@@ -44,7 +44,7 @@ jobs:
 
       - name: Type check with mypy
         run: |
-          mypy app/ --ignore-missing-imports
+          mypy
 
   # Security checks
   security:
