@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.features.authentication.router import router as auth_router
+from app.api.v1.features.imagery.downloads.router import router as downloads_router
 from app.api.v1.features.imagery.search.router import router as imagery_router
 from app.api.v1.features.imagery.tiles.routes import router as tiles_router
 from app.api.v1.features.projects.router import router as projects_router
@@ -60,6 +61,11 @@ app.include_router(
 )
 app.include_router(
     projects_router, prefix=f"{settings.api_v1_prefix}/projects", tags=["Projects"]
+)
+app.include_router(
+    downloads_router,
+    prefix=f"{settings.api_v1_prefix}/downloads",
+    tags=["downloads"],
 )
 
 
