@@ -1,11 +1,13 @@
 """Service layer for mosaic operations."""
 
 import json
+import re
 from datetime import datetime, timezone
 from typing import List, Optional
 from uuid import uuid4
 
-from arq import ArqRedis, create_pool
+import redis.asyncio as redis  # type: ignore[import-untyped]
+from arq import create_pool
 from arq.connections import RedisSettings
 
 from app.api.v1.features.imagery.mosaic.schemas import (
@@ -22,10 +24,19 @@ class MosaicService:
 
     def __init__(self) -> None:
         """Initialize mosaic service."""
+        # Parse redis URL to get host and port
+        match = re.match(r"redis://([^:]+):(\d+)", settings.redis_url)
+        if match:
+            host = match.group(1)
+            port = int(match.group(2))
+        else:
+            host = "localhost"
+            port = 6379
+
         self.redis_settings = RedisSettings(
-            host=settings.redis_host,
-            port=settings.redis_port,
-            database=settings.redis_db,
+            host=host,
+            port=port,
+            database=0,
         )
 
     async def create_mosaic(
@@ -93,14 +104,14 @@ class MosaicService:
             MosaicJob with current status or None if not found
         """
         try:
-            pool = await create_pool(self.redis_settings)
-            redis: ArqRedis = pool._redis  # Access underlying Redis client
+            # Use direct Redis client for accessing job status
+            redis_client = await redis.from_url(f"{settings.redis_url}/0")
 
             # Get job status from Redis
             key = f"job:status:{job_id}"
-            value = await redis.get(key)
+            value = await redis_client.get(key)
 
-            await pool.close()
+            await redis_client.close()
 
             if not value:
                 return None
@@ -164,13 +175,13 @@ class MosaicService:
             True if cancelled, False otherwise
         """
         try:
-            pool = await create_pool(self.redis_settings)
+            # Use direct Redis client for accessing job status
+            redis_client = await redis.from_url(f"{settings.redis_url}/0")
 
             # In ARQ, we can't directly cancel jobs, but we can mark them
-            redis: ArqRedis = pool._redis
             key = f"job:status:{job_id}"
 
-            await redis.set(
+            await redis_client.set(
                 key,
                 json.dumps(
                     {
@@ -182,7 +193,7 @@ class MosaicService:
                 ex=3600,
             )
 
-            await pool.close()
+            await redis_client.close()
             return True
 
         except Exception as e:
