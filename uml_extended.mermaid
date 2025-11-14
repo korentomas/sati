@@ -1,0 +1,213 @@
+classDiagram
+    %% ==============================
+    %% EXTENDED PROCESSING PIPELINE
+    %% ==============================
+
+    %% Original Core Classes (Referenced)
+    class SearchService {
+        <<existing>>
+        +search_imagery(SearchRequest) SearchResponse
+        +list_collections() List~CollectionInfo~
+        +get_scene(collection_id, scene_id) SceneResponse
+    }
+
+    class LayerManager {
+        <<existing>>
+        +add_layer(Layer)
+        +remove_layer(layer_id)
+        +update_layer_style(layer_id, style)
+        +List~Layer~ layers
+    }
+
+    %% ==============================
+    %% PROCESSING CORE
+    %% ==============================
+    class ProcessingService {
+        +calculate_index(scene_id, index_type) ProcessedLayer
+        +run_analysis(layer_id, analysis_type) AnalysisResult
+        +apply_enhancement(layer_id, adjustments) Layer
+        +batch_process(scene_ids, operations) JobStatus
+    }
+
+    class IndexCalculator {
+        +calculate_ndvi(red_band, nir_band) Array
+        +calculate_ndwi(green_band, nir_band) Array
+        +calculate_evi(red, nir, blue) Array
+        +calculate_savi(red, nir, L) Array
+        +calculate_nbr(nir, swir) Array
+        +calculate_ndbi(swir, nir) Array
+        +calculate_mndwi(green, swir) Array
+        +calculate_ndsi(green, swir) Array
+    }
+
+    class BandMathEngine {
+        +execute_expression(bands, expression) Array
+        +normalize(array, min, max) Array
+        +apply_mask(array, mask) Array
+        +stack_bands(List~Array~) MultiArray
+    }
+
+    %% ==============================
+    %% ANALYSIS TOOLS
+    %% ==============================
+    class ZonalStatistics {
+        +calculate_stats(raster, polygons) StatsResult
+        +mean(zone) float
+        +median(zone) float
+        +std_dev(zone) float
+        +percentile(zone, p) float
+    }
+
+    class ChangeDetection {
+        +detect_changes(scene1, scene2, method) ChangeMap
+        +threshold_changes(diff_image, threshold) BinaryMask
+        +calculate_trend(time_series) TrendResult
+    }
+
+    class Classification {
+        +kmeans_clustering(image, n_clusters) ClassifiedImage
+        +isodata(image, params) ClassifiedImage
+        +random_forest(image, training_data) ClassifiedImage
+        +threshold_classify(index_image, thresholds) ClassifiedImage
+    }
+
+    class TimeSeriesAnalysis {
+        +build_time_series(scene_ids, polygon) TimeSeries
+        +detect_anomalies(time_series) List~Anomaly~
+        +fit_trend(time_series) TrendLine
+        +seasonal_decomposition(time_series) SeasonalComponents
+    }
+
+    %% ==============================
+    %% VISUALIZATION & ADJUSTMENT
+    %% ==============================
+    class LayerStyler {
+        +adjust_brightness(layer, value) Layer
+        +adjust_contrast(layer, value) Layer
+        +adjust_saturation(layer, value) Layer
+        +apply_color_map(layer, colormap) Layer
+        +create_composite(bands, weights) Layer
+    }
+
+    class BandCombinations {
+        +natural_color(red, green, blue) RGBLayer
+        +false_color(nir, red, green) RGBLayer
+        +agriculture(swir, nir, blue) RGBLayer
+        +atmospheric(swir2, swir1, red) RGBLayer
+        +custom_combination(band1, band2, band3) RGBLayer
+    }
+
+    %% ==============================
+    %% DATA MODELS
+    %% ==============================
+    class ProcessedLayer {
+        +str id
+        +str name
+        +str index_type
+        +Array data
+        +Dict metadata
+        +ColorMap color_map
+        +Dict statistics
+    }
+
+    class AnalysisResult {
+        +str analysis_type
+        +Dict statistics
+        +List~Chart~ charts
+        +ProcessedLayer output_layer
+        +str report_url
+    }
+
+    class ProcessingJob {
+        +str job_id
+        +str status
+        +List~str~ operations
+        +datetime started_at
+        +float progress
+        +Dict results
+    }
+
+    class AOI {
+        +str id
+        +str name
+        +Polygon geometry
+        +datetime created_at
+        +str user_id
+    }
+
+    %% ==============================
+    %% EXPORT & REPORTING
+    %% ==============================
+    class ExportService {
+        <<extended>>
+        +export_geotiff(layer, options) File
+        +export_statistics(results, format) File
+        +generate_report(project, template) PDF
+        +export_time_series(data, format) File
+    }
+
+    class ReportGenerator {
+        +create_analysis_report(results) Report
+        +add_charts(report, charts)
+        +add_statistics_table(report, stats)
+        +add_maps(report, layers)
+        +export_pdf(report) File
+    }
+
+    %% ==============================
+    %% RELATIONSHIPS
+    %% ==============================
+    ProcessingService --> IndexCalculator : uses
+    ProcessingService --> BandMathEngine : uses
+    ProcessingService --> SearchService : fetches scenes
+    ProcessingService --> LayerManager : creates layers
+
+    IndexCalculator --> BandMathEngine : uses math operations
+
+    ProcessingService --> ZonalStatistics : runs analysis
+    ProcessingService --> ChangeDetection : runs analysis
+    ProcessingService --> Classification : runs analysis
+    ProcessingService --> TimeSeriesAnalysis : runs analysis
+
+    LayerStyler --> LayerManager : updates layers
+    BandCombinations --> LayerManager : creates layers
+
+    ExportService --> ProcessedLayer : exports
+    ExportService --> ReportGenerator : generates reports
+
+    ProcessingJob --> ProcessingService : tracks progress
+    AOI --> ZonalStatistics : defines zones
+    AOI --> ProcessingService : limits processing
+
+    %% ==============================
+    %% FRONTEND COMPONENTS (React)
+    %% ==============================
+    class MapInterface {
+        <<React Component>>
+        +LayerControl layer_control
+        +ProcessingToolbar toolbar
+        +ResultsPanel results
+        +AOIManager aoi_manager
+    }
+
+    class ProcessingToolbar {
+        <<React Component>>
+        +IndexSelector index_selector
+        +AnalysisTools analysis_tools
+        +ExportOptions export_options
+        +ProcessingQueue queue
+    }
+
+    class LayerControl {
+        <<React Component>>
+        +BrightnessSlider brightness
+        +ContrastSlider contrast
+        +OpacitySlider opacity
+        +BandSelector bands
+        +ColorMapSelector colormap
+    }
+
+    MapInterface --> ProcessingService : triggers processing
+    MapInterface --> LayerManager : manages layers
+    ProcessingToolbar --> ProcessingService : sends requests
+    LayerControl --> LayerStyler : applies adjustments
