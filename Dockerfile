@@ -11,6 +11,9 @@ RUN apt-get update && apt-get install -y \
     libgdal-dev \
     libpq-dev \
     postgresql-client \
+    libgeos-dev \
+    libproj-dev \
+    libspatialindex-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for better caching

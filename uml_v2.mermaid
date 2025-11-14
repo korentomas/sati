@@ -1,0 +1,406 @@
+classDiagram
+    %% ==============================
+    %% CORE CONFIGURATION
+    %% ==============================
+    class Settings {
+        +str app_name
+        +str version
+        +str supabase_url
+        +str secret_key
+        +str api_v1_prefix
+        +str redis_url
+        +str database_url
+    }
+
+    %% ==============================
+    %% AUTHENTICATION CORE
+    %% ==============================
+    class AuthService {
+        +authenticate_user(LoginRequest) TokenResponse
+        +create_api_key(user_id, ApiKeyRequest) ApiKeyResponse
+        +get_user_profile(user_id) UserProfile
+        +validate_token(token) User
+    }
+
+    class SupabaseAuth {
+        +verify_token(token) User
+        +create_user(email, password) User
+        +refresh_token(refresh_token) TokenResponse
+    }
+
+    %% ==============================
+    %% IMAGERY CORE
+    %% ==============================
+    class SearchService {
+        +search_imagery(SearchRequest) SearchResponse
+        +list_collections() List~CollectionInfo~
+        +get_scene(collection_id, scene_id) SceneResponse
+        +filter_by_cloud_cover(scenes, threshold) List~Scene~
+    }
+
+    class STACClient {
+        +search(collections, bbox, datetime) STACItemCollection
+        +get_item(collection_id, item_id) STACItem
+        +list_collections() List~STACCollection~
+        +get_collection_bounds(collection_id) BBox
+    }
+
+    %% ==============================
+    %% PROCESSING SERVICES
+    %% ==============================
+    class ProcessingService {
+        +calculate_index(scene_id, index_type) ProcessedLayer
+        +run_analysis(layer_id, analysis_type) AnalysisResult
+        +apply_enhancement(layer_id, adjustments) Layer
+        +batch_process(scene_ids, operations) JobStatus
+        +create_job(operation_type, parameters) Job
+        +get_job_status(job_id) JobStatus
+        +cancel_job(job_id) bool
+    }
+
+    class IndexCalculator {
+        +calculate_ndvi(red_band, nir_band) Array
+        +calculate_ndwi(green_band, nir_band) Array
+        +calculate_evi(red, nir, blue) Array
+        +calculate_savi(red, nir, L) Array
+        +calculate_nbr(nir, swir) Array
+        +calculate_ndbi(swir, nir) Array
+        +calculate_bai(red, nir) Array
+        +calculate_gndvi(green, nir) Array
+    }
+
+    class Classification {
+        +kmeans_clustering(image, n_clusters) ClassifiedImage
+        +random_forest(image, training_data) ClassifiedImage
+        +svm_classify(image, training_data) ClassifiedImage
+        +maximum_likelihood(image, training_data) ClassifiedImage
+        +isodata(image, params) ClassifiedImage
+    }
+
+    class ZonalStatistics {
+        +calculate_stats(raster, polygons) StatsResult
+        +mean(zone) float
+        +median(zone) float
+        +std_dev(zone) float
+        +min(zone) float
+        +max(zone) float
+        +percentile(zone, p) float
+    }
+
+    %% ==============================
+    %% ADVANCED SERVICES
+    %% ==============================
+    class MosaicService {
+        +create_mosaic(scene_ids, options) MosaicResult
+        +get_mosaic_status(mosaic_id) JobStatus
+        +list_user_mosaics(user_id) List~Mosaic~
+        +delete_mosaic(mosaic_id) bool
+        +update_mosaic_metadata(mosaic_id, metadata) Mosaic
+    }
+
+    class DirectDownloadService {
+        +download_scene(scene_id, options) DownloadResult
+        +parallel_download(scene_ids) List~DownloadResult~
+        +get_download_status(download_id) JobStatus
+        +cancel_download(download_id) bool
+        +retry_failed_downloads() List~DownloadResult~
+    }
+
+    class TileService {
+        +generate_tiles(layer, zoom_levels) TileSet
+        +get_tile(x, y, z, layer_id) Tile
+        +create_tile_url(layer) str
+        +invalidate_cache(layer_id) bool
+        +get_tile_metadata(x, y, z) TileMetadata
+    }
+
+    %% ==============================
+    %% FACADE LAYER
+    %% ==============================
+    class ProjectManager {
+        +create_project(project_id, data)
+        +get_project(project_id) Project
+        +delete_project(project_id)
+        +load_local_data(file_path) Layer
+        +search_and_import_rasters(aoi, filters) List~Layer~
+        +visualize_layers() MapView
+        +perform_analysis(expression, layers) Layer
+        +export_project(output_path)
+        +load_project(project_path)
+        +collect_metrics() MetricsReport
+        +create_mosaic(scene_ids, options) Layer
+        -layers: Dict~str, List~Layer~~
+        -projects: Dict~str, Project~
+        -metrics: Dict~str, List~
+    }
+
+    class DataImporter {
+        +import_from_search(SearchRequest) Any
+        +load_local(file_path) Layer
+        +search_online(aoi, filters) List~Layer~
+        +download_raster(url) Layer
+        +validate_data(data) bool
+        +transform_to_layer(data) Layer
+    }
+
+    class LayerManager {
+        +add_layer(layer)
+        +remove_layer(layer_id)
+        +list_layers() List~Layer~
+        +set_crs(layer_id, crs)
+        +toggle_visibility(layer_id, visible)
+        +reorder_layers(order)
+        +set_opacity(layer_id, opacity)
+        +get_layer(layer_id) Layer
+        +update_layer_metadata(layer_id, metadata)
+        -layers: List~Dict~
+        -layer_order: List~str~
+    }
+
+    class MapVisualizer {
+        +render() str
+        +render_map(layers) MapView
+        +add_basemap(provider)
+        +zoom_to_layer(layer)
+        +set_center(lat, lon)
+        +set_zoom(level)
+        +export_as_image() bytes
+        -base_map: str
+        -zoom_level: int
+        -center: List~float~
+    }
+
+    class AnalysisEngine {
+        +calculate(expression, layers) Any
+        +clip_raster_by_aoi(raster, aoi) Layer
+        +measure_distance(geom1, geom2, unit) float
+        +calculate_statistics() Dict
+        +buffer_geometry(geom, distance) Geometry
+        +intersect_layers(layer1, layer2) Layer
+        -processing_service: ProcessingService
+    }
+
+    class ExportService {
+        +export_layer(layer, format) File
+        +save_project(project) Path
+        +load_project(path) Project
+        +to_geojson() Dict
+        +to_shapefile(layer) bytes
+        +to_geotiff(layer) bytes
+        +generate_pdf_report(project) bytes
+    }
+
+    class MetricsCollector {
+        +collect_performance_data() MetricsReport
+        +log_error(event)
+        +generate_report() Dict
+        +collect(metric)
+        +get_statistics() Dict
+        +export_metrics(format) bytes
+        -metrics: List~Dict~
+        -performance_data: List~float~
+        -error_log: List~Dict~
+    }
+
+    %% ==============================
+    %% DATA MODELS
+    %% ==============================
+    class Layer {
+        +str id
+        +str name
+        +str type
+        +str crs
+        +bool visible
+        +float opacity
+        +Dict metadata
+        +Dict data
+    }
+
+    class MapView {
+        +List~Layer~ layers
+        +str base_map
+    }
+
+    class MetricsReport {
+        +float avg_response_time
+        +int total_requests
+        +int errors
+        +Dict additional_metrics
+        +List~Dict~ metrics
+    }
+
+    class ProcessedLayer {
+        +str id
+        +str name
+        +str index_type
+        +Array data
+        +Dict metadata
+        +ColorMap color_map
+        +Dict statistics
+    }
+
+    class Job {
+        +str job_id
+        +str status
+        +str operation_type
+        +Dict parameters
+        +datetime created_at
+        +datetime updated_at
+        +float progress
+        +Dict results
+    }
+
+    class MosaicResult {
+        +str mosaic_id
+        +List~str~ scene_ids
+        +str status
+        +Dict metadata
+        +str output_path
+    }
+
+    class AnalysisResult {
+        +str analysis_type
+        +Dict statistics
+        +List~Chart~ charts
+        +ProcessedLayer output_layer
+        +str report_url
+    }
+
+    class STACItem {
+        +str id
+        +str collection
+        +List~float~ bbox
+        +Dict properties
+        +Dict assets
+        +datetime() datetime
+        +cloud_cover() float
+    }
+
+    class SearchRequest {
+        +datetime date_from
+        +datetime date_to
+        +List~float~ bbox
+        +List~str~ collections
+        +float cloud_cover_max
+    }
+
+    class SearchResponse {
+        +int total
+        +List~SceneResponse~ scenes
+        +Optional~str~ next_token
+    }
+
+    %% ==============================
+    %% CORE RELATIONSHIPS
+    %% ==============================
+
+    %% Authentication
+    AuthService --> LoginRequest : uses
+    AuthService --> TokenResponse : returns
+    AuthService --> UserProfile : returns
+    AuthService --> SupabaseAuth : uses
+    SupabaseAuth --> Settings : uses
+
+    %% Search
+    SearchService --> SearchRequest : uses
+    SearchService --> SearchResponse : returns
+    SearchService --> STACClient : uses
+    STACClient --> STACItem : returns
+    STACClient --> Settings : uses
+
+    %% ==============================
+    %% FACADE ORCHESTRATION
+    %% ==============================
+
+    ProjectManager --> DataImporter : uses
+    ProjectManager --> LayerManager : manages
+    ProjectManager --> MapVisualizer : uses
+    ProjectManager --> AnalysisEngine : uses
+    ProjectManager --> ExportService : uses
+    ProjectManager --> MetricsCollector : uses
+    ProjectManager --> MosaicService : orchestrates
+    ProjectManager --> Layer : creates
+
+    DataImporter --> SearchService : uses
+    DataImporter --> DirectDownloadService : uses
+    DataImporter --> Layer : creates
+
+    LayerManager --> Layer : manages
+
+    MapVisualizer --> LayerManager : queries
+    MapVisualizer --> TileService : uses
+    MapVisualizer --> MapView : creates
+
+    AnalysisEngine --> ProcessingService : delegates
+    AnalysisEngine --> LayerManager : uses
+    AnalysisEngine --> Layer : creates
+
+    ExportService --> LayerManager : uses
+
+    MetricsCollector --> MetricsReport : creates
+
+    %% ==============================
+    %% PROCESSING PIPELINE
+    %% ==============================
+
+    ProcessingService --> IndexCalculator : uses
+    ProcessingService --> Classification : uses
+    ProcessingService --> ZonalStatistics : uses
+    ProcessingService --> Job : creates
+    ProcessingService --> ProcessedLayer : creates
+    ProcessingService --> AnalysisResult : creates
+
+    MosaicService --> Job : creates
+    MosaicService --> MosaicResult : creates
+    MosaicService --> ProcessingService : uses
+
+    DirectDownloadService --> Job : creates
+
+    TileService --> ProcessingService : uses
+
+    %% ==============================
+    %% ASYNC JOB SYSTEM
+    %% ==============================
+
+    class JobQueue {
+        +submit_job(job) str
+        +get_job_status(job_id) JobStatus
+        +cancel_job(job_id) bool
+        +list_jobs(user_id) List~Job~
+        +retry_job(job_id) Job
+    }
+
+    class RedisQueue {
+        +enqueue(task) str
+        +dequeue() Task
+        +get_status(task_id) str
+        +purge_completed() int
+    }
+
+    ProcessingService --> JobQueue : submits to
+    MosaicService --> JobQueue : submits to
+    DirectDownloadService --> JobQueue : submits to
+    JobQueue --> RedisQueue : uses
+    RedisQueue --> Settings : uses
+
+    %% ==============================
+    %% API LAYER
+    %% ==============================
+
+    class ProjectRouter {
+        +list_projects()
+        +create_project()
+        +get_project()
+        +delete_project()
+        +load_local_data()
+        +search_and_import()
+        +list_layers()
+        +update_layer()
+        +perform_analysis()
+        +visualize()
+        +export()
+        +get_metrics()
+    }
+
+    ProjectRouter --> ProjectManager : uses
+    ProjectRouter --> LayerManager : uses
