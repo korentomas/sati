@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-import redis.asyncio as redis  # type: ignore[import-untyped]
+import redis.asyncio as redis
 from arq import create_pool
 from arq.connections import RedisSettings
 
