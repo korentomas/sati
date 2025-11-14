@@ -6,10 +6,17 @@ from arq import cron
 from loguru import logger
 
 from app.workers.config import WorkerSettings
-from app.workers.tasks import (
+from app.workers.tasks import (  # Processing tasks
+    calculate_band_math,
+    calculate_spectral_index,
+    calculate_zonal_statistics,
     cleanup_old_downloads,
+    create_temporal_composite,
+    detect_changes,
     download_imagery,
     export_dataset,
+    extract_mask,
+    perform_classification,
     process_imagery,
 )
 
@@ -43,6 +50,14 @@ class WorkerConfig:
         process_imagery,
         export_dataset,
         cleanup_old_downloads,
+        # Processing functions
+        calculate_spectral_index,
+        perform_classification,
+        calculate_zonal_statistics,
+        detect_changes,
+        create_temporal_composite,
+        calculate_band_math,
+        extract_mask,
     ]
 
     # Cron jobs for scheduled tasks

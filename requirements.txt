@@ -28,3 +28,4 @@ pre-commit==4.0.1
 arq==0.26.3
 aiofiles==25.1.0
 types-aiofiles==25.1.0.20251011
+matplotlib==3.7.2
